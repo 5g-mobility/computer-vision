@@ -23,9 +23,11 @@ def main():
 
             if len(labels_filtered) != 0:
                 rewrite_file(file_path, labels_filtered)
+                print(f'Rewriting the file {file_path}.')
             else:
-                print(f'{file_path} is a file to delete.')
-            
+                os.remove(file_path)
+                print(f'Deleting the file {file_path}.')
+                
             print('-------------------')
 
 """
