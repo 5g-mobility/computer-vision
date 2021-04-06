@@ -27,7 +27,7 @@ def main():
             else:
                 os.remove(file_path)
                 print(f'Deleting the file {file_path}.')
-                
+
             print('-------------------')
 
 """
@@ -52,7 +52,7 @@ Rewrites a file with the classes pretended
 def rewrite_file(file_name, content):
     with open(file_name, 'w') as f:
         for value in content:
-        f.write(''.join(value[i]+' ' if i != len(value)-1 else value[i]+'\n' for i in range(len(value))))
+            f.write(''.join(value[i]+' ' if i != len(value)-1 else value[i]+'\n' for i in range(len(value))))
 
 # ------> os.rename('a.txt', 'b.kml')
 
