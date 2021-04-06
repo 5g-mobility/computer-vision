@@ -17,6 +17,8 @@ def main():
     for f in os.listdir(PATH_LABELS):
 
         if f.endswith('.txt'):
+
+            # label complete path
             file_path = os.path.join(PATH_LABELS, f)
 
             labels_filtered = filter_file(file_path)
@@ -30,14 +32,15 @@ def main():
             if len(labels_filtered) != 0:
                 """
                 If the file has correct labels, just modify the file
+                rewrite the file only with the labels that we want
                 """
-                rewrite_file(file_path, labels_filtered)
+                #rewrite_file(file_path, labels_filtered)
                 print(f'Rewriting the file {file_path}.')
             else:
                 """
                 If the file dont have nothing that is of our interest, just remove it
                 """
-                os.remove(file_path)
+                remove_label_image(file_path, f)
                 print(f'Deleting the file {file_path}.')
 
             print('-------------------')
@@ -61,6 +64,7 @@ def filter_file(file_name):
         print(content)
         for line in content:
             print(line)
+            # get object id
             value = line.split(' ')
 
             if not int(value[0]) in labels:
@@ -82,6 +86,22 @@ def rewrite_file(file_name, content):
 
 # for f in folders:
 #     print(f)
+
+"""
+    Remove the label and its image
+"""
+def remove_label_image(label_file_path, label_name):
+
+    img_file_path = os.path.join(PATH_IMAGES, label_name.replace(".txt", ".jpg") )
+
+    os.remove(label_file_path)
+    print(f'Deleting the file {label_file_path}.')
+
+    os.remove(img_file_path)
+    print(f'Deleting the file {img_file_path}.')
+
+
+
 
 if __name__ == '__main__':
     main()
