@@ -7,40 +7,50 @@ labels = [ 4, 6, 9,10, 11, 12, 13, 14, 20, 22, 23, 24, 25, 26, 27, 28, 29,30, 31
          58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79 ]
 
 
-path= './labels/train2017'
+ROOT = os.getcwd()
 
+PATH_IMAGES = os.path.join(ROOT, 'images', 'train2017')
 
-Root = os.getcwd()
+PATH_LABELS = os.path.join(ROOT, 'labels', 'train2017')
 
-images = os.path.join(Root, 'images', 'train2017')
+def main():
+    for f in os.listdir(PATH_LABELS):
 
-labels1 = os.path.join(Root, 'labels', 'train2017')
+        if f.endswith('.txt'):
+            file_path = os.path.join(PATH_LABELS, f)
 
+            labels_filtered = filter_file(file_path)
 
-for f in os.listdir(labels1):
-
-    if f.endswith('.txt'):
-        
-        with open(os.path.join(Root, 'labels', 'train2017', f)) as file:
-            classes = set()
-            for l in file:
-                
-                c = l.split(' ')[0]
-                classes.add(c)
-
-    
-        if all([ int(v) in labels for v in classes]) and len(classes)!=0:
+            if len(labels_filtered) != 0:
+                rewrite_file(file_path, labels_filtered)
+            else:
+                print(f'{file_path} is a file to delete.')
             
-            os.rename(os.path.join(images, f ), os.path.join(images, 'Apagar' + f))
+            print('-------------------')
 
+"""
+Filters the classes that we want
+"""
+def filter_file(file_name):
+    labels_filtered = []
 
+    with open(file_name, 'r') as f:
+        for line in f:
+            print(line)
+            value = line.split(' ')
 
+            if not int(value[0]) in labels:
+                labels_filtered.append(value)
 
-            
+    return labels_filtered
 
-        
-
-
+"""
+Rewrites a file with the classes pretended
+"""
+def rewrite_file(file_name, content):
+    with open(file_name, 'w') as f:
+        for value in content:
+        f.write(''.join(value[i]+' ' if i != len(value)-1 else value[i]+'\n' for i in range(len(value))))
 
 # ------> os.rename('a.txt', 'b.kml')
 
@@ -48,3 +58,6 @@ for f in os.listdir(labels1):
 
 # for f in folders:
 #     print(f)
+
+if __name__ == '__main__':
+    main()
