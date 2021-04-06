@@ -34,14 +34,13 @@ def main():
                 If the file has correct labels, just modify the file
                 rewrite the file only with the labels that we want
                 """
-                #rewrite_file(file_path, labels_filtered)
+                rewrite_file(file_path, labels_filtered)
                 print(f'Rewriting the file {file_path}.')
             else:
                 """
                 If the file dont have nothing that is of our interest, just remove it
                 """
                 remove_label_image(file_path, f)
-                print(f'Deleting the file {file_path}.')
 
             print('-------------------')
 
@@ -61,9 +60,7 @@ def filter_file(file_name):
             """
             return None
 
-        print(content)
         for line in content:
-            print(line)
             # get object id
             value = line.split(' ')
 
@@ -80,13 +77,6 @@ def rewrite_file(file_name, content):
         for value in content:
             f.write(''.join(value[i]+' ' if i != len(value)-1 else value[i]+'\n' for i in range(len(value))))
 
-# ------> os.rename('a.txt', 'b.kml')
-
-# folders = [f for f in glob.glob(path + "**/*.txt", recursive=True)]
-
-# for f in folders:
-#     print(f)
-
 """
     Remove the label and its image
 """
@@ -98,7 +88,7 @@ def remove_label_image(label_file_path, label_name):
     print(f'Deleting the file {label_file_path}.')
 
     os.remove(img_file_path)
-    print(f'Deleting the file {img_file_path}.')
+    print(f'Deleting the image file {img_file_path}.')
 
 
 
