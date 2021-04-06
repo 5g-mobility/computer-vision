@@ -21,10 +21,22 @@ def main():
 
             labels_filtered = filter_file(file_path)
 
+            if labels_filtered == None:
+                """
+                Its the case of an empty file
+                """
+                continue
+
             if len(labels_filtered) != 0:
+                """
+                If the file has correct labels, just modify the file
+                """
                 rewrite_file(file_path, labels_filtered)
                 print(f'Rewriting the file {file_path}.')
             else:
+                """
+                If the file dont have nothing that is of our interest, just remove it
+                """
                 os.remove(file_path)
                 print(f'Deleting the file {file_path}.')
 
@@ -37,7 +49,17 @@ def filter_file(file_name):
     labels_filtered = []
 
     with open(file_name, 'r') as f:
-        for line in f:
+        content = f.read().split('\n')[:-1]
+        if len(content) == 0:
+            """
+            This means that the file was empty
+            And an empty file is not supposed to be deleted, because its mainly landscapes
+                ,and this landscapes can be good for background calculation (duno)
+            """
+            return None
+
+        print(content)
+        for line in content:
             print(line)
             value = line.split(' ')
 
