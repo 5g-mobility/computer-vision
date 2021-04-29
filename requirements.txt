@@ -1,4 +1,4 @@
-celery==5.0.5
+celery==4.4.7
 Cython
 matplotlib>=3.2.2
 numpy>=1.18.5
