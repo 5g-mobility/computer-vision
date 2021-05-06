@@ -1,7 +1,7 @@
 import argparse
 import time
 from pathlib import Path
-
+import os
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
@@ -15,11 +15,13 @@ from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 
 
-def detect(save_img=False):
+def detect(pid, save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
+
+    
 
     # Directories
     save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
@@ -48,7 +50,7 @@ def detect(save_img=False):
     if webcam:
         view_img = check_imshow()
         cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=imgsz, stride=stride)
+        dataset = LoadStreams(source, img_size=imgsz, stride=stride, pid=pid)
     else:
         dataset = LoadImages(source, img_size=imgsz, stride=stride)
 
@@ -60,6 +62,12 @@ def detect(save_img=False):
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
+
+    # flag_repeat_LoadStream = True
+    # while flag_repeat_LoadStream:
+    #     flag_repeat_LoadStream = False
+    #     print('Running one more time')
+    #     try:
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -138,6 +146,12 @@ def detect(save_img=False):
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
+        # except TimeoutError as time_err:
+        #     print(f'Timeout error: {time_err}')
+        #     flag_repeat_LoadStream = True
+        #     dataset = LoadStreams(source, img_size=imgsz, stride=stride)
+        # except Exception as e:
+        #     print(f'Exception occur when detecting: {e}')
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
@@ -168,11 +182,12 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=('pycocotools', 'thop'))
-
+    pid=os.getpid()
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
-                detect()
+                detect(pid)
                 strip_optimizer(opt.weights)
         else:
-            detect()
+
+            detect(pid)
