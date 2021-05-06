@@ -1,8 +1,9 @@
 import os
 
-labels = [ 4, 6, 9,10, 11, 12, 13, 14, 20, 22, 23, 24, 25, 26, 27, 28, 29,30, 31, 33, 34, 35, 36, 37,
-         38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-         58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79 ]
+# [person, cyclist, car, truck, cat, dog, horse, sheep, cow, bear]
+animal_labels = [7, 8, 9, 10, 11, 12]
+# just need to subtract 3 to the initial number label
+refactor_labels = [4, 5, 6, 7, 8, 9]
 
 ROOT = os.getcwd()
 
@@ -11,11 +12,11 @@ PATH_IMAGES = os.path.join(ROOT, 'images', 'train2017')
 PATH_LABELS = os.path.join(ROOT, 'labels', 'train2017')
 
 def main():
-    map_refactor_labels = create_map()
+    # map_refactor_labels = create_map()
 
-    change_label(map_refactor_labels)
+    change_label()
 
-def change_label(map_refactor_labels):
+def change_label():
     for f in os.listdir(PATH_LABELS):
 
         if f.endswith('.txt'):
@@ -24,12 +25,9 @@ def change_label(map_refactor_labels):
             with open(file_name, 'r') as _file:
                 content = _file.read().split('\n')[:-1]
 
-                if len(content) == 0:
-                    continue
-
                 for line in content:
                     splited_content = line.split(' ')
-                    splited_content[0] = map_refactor_labels[int(splited_content[0])]
+                    splited_content[0] = str(int(splited_content[0]) - 3)
 
                     content_4_rewrite.append(splited_content)
 
