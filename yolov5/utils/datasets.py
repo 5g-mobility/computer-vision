@@ -11,6 +11,7 @@ from itertools import repeat
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from threading import Thread
+import logging
 
 import cv2
 import numpy as np
@@ -20,8 +21,8 @@ from PIL import Image, ExifTags
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from utils.general import xyxy2xywh, xywh2xyxy, xywhn2xyxy, xyn2xy, segment2box, segments2boxes, resample_segments, \
-    clean_str
+from utils.general import check_requirements, xyxy2xywh, xywh2xyxy, xywhn2xyxy, xyn2xy, segment2box, segments2boxes, \
+    resample_segments, clean_str
 from utils.torch_utils import torch_distributed_zero_first
 
 # Parameters
@@ -258,10 +259,17 @@ class LoadWebcam:  # for inference
 
 
 class LoadStreams:  # multiple IP or RTSP cameras
-    def __init__(self, sources='streams.txt', img_size=640, stride=32):
+    def __init__(self,sources='streams.txt', img_size=640, stride=32, pid=0):
         self.mode = 'stream'
         self.img_size = img_size
         self.stride = stride
+        self.pid = pid
+        self.cap = None
+        self.s = None
+
+        self.error = False
+        # self.grabbed_frame = False
+
 
         if os.path.isfile(sources):
             with open(sources, 'r') as f:
@@ -272,17 +280,29 @@ class LoadStreams:  # multiple IP or RTSP cameras
         n = len(sources)
         self.imgs = [None] * n
         self.sources = [clean_str(x) for x in sources]  # clean source names for later
-        for i, s in enumerate(sources):
-            # Start the thread to read frames from the video stream
+        for i, s in enumerate(sources):  # index, source
+
+
+            # Start thread to read frames from video stream
             print(f'{i + 1}/{n}: {s}... ', end='')
-            cap = cv2.VideoCapture(eval(s) if s.isnumeric() else s)
-            assert cap.isOpened(), f'Failed to open {s}'
-            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            fps = cap.get(cv2.CAP_PROP_FPS) % 100
-            _, self.imgs[i] = cap.read()  # guarantee first frame
-            thread = Thread(target=self.update, args=([i, cap]), daemon=True)
-            print(f' success ({w}x{h} at {fps:.2f} FPS).')
+            if 'youtube.com/' in s or 'youtu.be/' in s:  # if source is YouTube video
+                check_requirements(('pafy', 'youtube_dl'))
+                import pafy
+                s = pafy.new(s).getbest(preftype="mp4").url  # YouTube URL
+            self.s = eval(s) if s.isnumeric() else s  # i.e. s = '0' local webcam
+            self.cap = cv2.VideoCapture(self.s)
+            print("-------------------")
+
+
+            assert self.cap.isOpened(), f'Failed to open {s}'
+            w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.fps = self.cap.get(cv2.CAP_PROP_FPS) % 100
+
+            _, self.imgs[i] = self.cap.read()  # guarantee first frame
+
+            thread = Thread(target=self.update, args=([i]), daemon=True)
+            print(f' success ({w}x{h} at {self.fps:.2f} FPS).')
             thread.start()
         print('')  # newline
 
@@ -292,18 +312,57 @@ class LoadStreams:  # multiple IP or RTSP cameras
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
 
-    def update(self, index, cap):
+
+        # quando update terminar vem para aqui
+        #thread.join()
+        print('Estou depois do join à tua espera cão')
+        #if self.error:
+        #    self = self.__init__(self.mode,self.img_size, self.stride)
+
+
+    def grab_frame(self):
+        # self.grabbed_frame = False
+        self.cap.grab()
+        # self.grabbed_frame = True
+
+
+    def update(self, index):
         # Read next stream frame in a daemon thread
         n = 0
-        while cap.isOpened():
+        while self.cap.isOpened():
             n += 1
             # _, self.imgs[index] = cap.read()
-            cap.grab()
+            t1 = Thread(target=self.grab_frame, args=())
+            t1.start()
+            t1.join(timeout=5)
+
+            if t1.is_alive():
+                
+
+                os.system("kill "+str(self.pid) +" && cd /Users/miguel/Documents/ua/pi/computer-vision/yolov5 && source venv/bin/activate && arch -x86_64 /usr/bin/python3 detect.py --source rtsp://pei:5g-mobix@10.0.19.203:554 --weights weights/best.pt --view-img --conf 0.5"  )
+                
+                # raise TimeoutError
+
+                #self.reconnect_stream()
+                #self.reconnect_stream()
+
+                
+
             if n == 4:  # read every 4th frame
-                success, im = cap.retrieve()
+                success, im = self.cap.retrieve()
+
                 self.imgs[index] = im if success else self.imgs[index] * 0
                 n = 0
-            time.sleep(0.01)  # wait time
+    
+            time.sleep(1 / self.fps)  # wait time
+        print("sai do ciclo ")
+
+
+    def reconnect_stream(self):
+
+        self.cap.release()
+
+        #self.cap = cv2.VideoCapture(self.s)
 
     def __iter__(self):
         self.count = -1
@@ -444,7 +503,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 gb += self.imgs[i].nbytes
                 pbar.desc = f'{prefix}Caching images ({gb / 1E9:.1f}GB)'
             pbar.close()
-            
+
     def cache_labels(self, path=Path('./labels.cache'), prefix=''):
         # Cache dataset labels, check images and read shapes
         x = {}  # dict
@@ -489,15 +548,18 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             pbar.desc = f"{prefix}Scanning '{path.parent / path.stem}' images and labels... " \
                         f"{nf} found, {nm} missing, {ne} empty, {nc} corrupted"
         pbar.close()
-            
+
         if nf == 0:
             print(f'{prefix}WARNING: No labels found in {path}. See {help_url}')
 
         x['hash'] = get_hash(self.label_files + self.img_files)
         x['results'] = nf, nm, ne, nc, i + 1
         x['version'] = 0.1  # cache version
-        torch.save(x, path)  # save for next time
-        logging.info(f'{prefix}New cache created: {path}')
+        try:
+            torch.save(x, path)  # save for next time
+            logging.info(f'{prefix}New cache created: {path}')
+        except Exception as e:
+            logging.info(f'{prefix}WARNING: Cache directory {path.parent} is not writeable: {e}')  # path not writeable
         return x
 
     def __len__(self):
@@ -628,10 +690,10 @@ def load_image(self, index):
         img = cv2.imread(path)  # BGR
         assert img is not None, 'Image Not Found ' + path
         h0, w0 = img.shape[:2]  # orig hw
-        r = self.img_size / max(h0, w0)  # resize image to img_size
-        if r != 1:  # always resize down, only resize up if training with augmentation
-            interp = cv2.INTER_AREA if r < 1 and not self.augment else cv2.INTER_LINEAR
-            img = cv2.resize(img, (int(w0 * r), int(h0 * r)), interpolation=interp)
+        r = self.img_size / max(h0, w0)  # ratio
+        if r != 1:  # if sizes are not equal
+            img = cv2.resize(img, (int(w0 * r), int(h0 * r)),
+                             interpolation=cv2.INTER_AREA if r < 1 and not self.augment else cv2.INTER_LINEAR)
         return img, (h0, w0), img.shape[:2]  # img, hw_original, hw_resized
     else:
         return self.imgs[index], self.img_hw0[index], self.img_hw[index]  # img, hw_original, hw_resized
@@ -1033,6 +1095,7 @@ def extract_boxes(path='../coco128/'):  # from utils.datasets import *; extract_
                     b[[0, 2]] = np.clip(b[[0, 2]], 0, w)  # clip boxes outside of image
                     b[[1, 3]] = np.clip(b[[1, 3]], 0, h)
                     assert cv2.imwrite(str(f), im[b[1]:b[3], b[0]:b[2]]), f'box failure in {f}'
+
 
 def autosplit(path='../coco128', weights=(0.9, 0.1, 0.0), annotated_only=False):
     """ Autosplit a dataset into train/val/test splits and save path/autosplit_*.txt files

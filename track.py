@@ -15,6 +15,7 @@ from pathlib import Path
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
+import json
 
 
 
@@ -42,7 +43,7 @@ def compute_color_for_labels(label):
     return tuple(color)
 
 
-def draw_boxes(img, bbox, identities=None, offset=(0, 0)):
+def draw_boxes(img, bbox, classes, identities=None, offset=(0, 0)):
     for i, box in enumerate(bbox):
         x1, y1, x2, y2 = [int(i) for i in box]
         x1 += offset[0]
@@ -52,7 +53,9 @@ def draw_boxes(img, bbox, identities=None, offset=(0, 0)):
         # box text and bar
         id = int(identities[i]) if identities is not None else 0
         color = compute_color_for_labels(id)
-        label = '{}{:d}'.format("", id)
+        cls = classes[i]
+
+        label = '{}{:d}  {}'.format("", id, cls)
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
         cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
         cv2.rectangle(
@@ -134,8 +137,13 @@ def detect(opt, save_img=False):
         print("pred : ", pred)
         # Process detections
         for i, det in enumerate(pred):  # detections per image
-            print("pred: ",  pred)
-            print("i: ",  i)
+
+            #det - pytorch tensor (matriz)
+
+            print("det: ", det)
+            print(det[:, -1])
+
+            #det- detections
             if webcam:  # batch_size >= 1
                 p, s, im0 = path[i], '%g: ' % i, im0s[i].copy()
             else:
@@ -151,30 +159,53 @@ def detect(opt, save_img=False):
 
                 # Print results
                 for c in det[:, -1].unique():
+                    print("c: ", c)
+                    print("name: ", names[int(c)])
+                    # c - classe
+                    # n - numero de objetos detetados para a classe
+                    # names - dicionario com o nome das classes
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += '%g %ss, ' % (n, names[int(c)])  # add to string
 
                 bbox_xywh = []
                 confs = []
+                classes = []
+                print(det[:, -1])
 
                 # Adapt detections to deep sort input format
                 for *xyxy, conf, cls in det:
+                    #cls - classe
                     x_c, y_c, bbox_w, bbox_h = bbox_rel(*xyxy)
                     obj = [x_c, y_c, bbox_w, bbox_h]
                     bbox_xywh.append(obj)
                     confs.append([conf.item()])
+                    classes.append(cls)
+
+
 
                 xywhs = torch.Tensor(bbox_xywh)
                 confss = torch.Tensor(confs)
 
-                # Pass detections to deepsort
-                outputs = deepsort.update(xywhs, confss, im0)
 
+                print("antes: ", bbox_xywh)
+                print("depois: ", xywhs)
+
+                #im0 - imagem
+
+                # Pass detections to deepsort
+                outputs = deepsort.update(xywhs, confss, im0, classes)
+                print("outputs: ", outputs)
                 # draw boxes for visualization
                 if len(outputs) > 0:
                     bbox_xyxy = outputs[:, :4]
-                    identities = outputs[:, -1]
-                    draw_boxes(im0, bbox_xyxy, identities)
+                    identities = outputs[:, -2]
+                    classes = outputs[:, -1]
+
+                    #im0 - image id
+                    #bbox_xyxy - bounding boxes
+
+
+                    draw_boxes(im0, bbox_xyxy, [names[int(c)] for c in classes] , identities)
 
                 # Write MOT compliant results to file
                 if save_txt and len(outputs) != 0:
@@ -183,10 +214,17 @@ def detect(opt, save_img=False):
                         bbox_top = output[1]
                         bbox_w = output[2]
                         bbox_h = output[3]
-                        identity = output[-1]
-                        with open(txt_path, 'a') as f:
-                            f.write(('%g ' * 10 + '\n') % (frame_idx, identity, bbox_left,
-                                                           bbox_top, bbox_w, bbox_h, -1, -1, -1, -1))  # label format
+                        #id
+                        identity = output[-2]
+                        c = output[-1]
+
+                        json_data = send_data(output, names)
+
+                        print(json_data)
+
+                        #with open(txt_path, 'a') as f:
+                        #    f.write(('%g ' * 10 + '\n') % (frame_idx, identity, bbox_left,
+                        #                                   bbox_top, bbox_w, bbox_h, names[int(c)], -1, -1, -1))  # label format
 
             else:
                 deepsort.increment_ages()
@@ -225,6 +263,24 @@ def detect(opt, save_img=False):
             os.system('open ' + save_path)
 
     print('Done. (%.3fs)' % (time.time() - t0))
+
+def send_data(output, names):
+
+    bbox_left = output[0]
+    bbox_top = output[1]
+    bbox_w = output[2]
+    bbox_h = output[3]
+    # id
+    identity = output[-2]
+    c = output[-1]
+
+    print(c)
+
+    return json.dumps({"classe": names[int(c)],
+                      "box_left": int(bbox_left), "box_top": int(bbox_top),
+                      "box_w": int(bbox_w), "box_h": int(bbox_h)})
+
+
 
 
 if __name__ == '__main__':
