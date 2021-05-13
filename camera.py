@@ -16,18 +16,50 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 import json
-
+import matplotlib.path as mpltPath
 
 class Camera:
 
 
     def __init__(self):
         self.source = ""
-        self.road_area = []
+        self.road_area = [(0,0), (0,0), (0,0) ,(0,0)]
+        self.mplt_path = mpltPath.Path(self.road_area)
 
+
+    
     @property
     def palette(self):
+        """ bounding boxes colors """
         return (2 ** 11 - 1, 2 ** 15 - 1, 2 ** 20 - 1)
+
+    # check if object is inside road
+    def inside_road(self, x, y):
+        """ check if object is inside road or not """
+
+        return self.mplt_path.contains_point((x, y), radius=1e-9)
+
+
+    def box_center(self, *xyxy):
+        """ calculate bbox center based xy points """
+
+        #bbox = xyxy[0]
+        x1, y1, x2, y2 = xyxy
+
+        return (int(x1) + int(x2))/2 , (int(y1) + int(y2)) /2
+
+    def isMotocycle(self, center_x, center_y):
+        """ check if detected object is an motocycle
+
+            if ouside of road - cyclist
+            else - motocycle
+        """
+
+        if (self.inside_road(center_x, center_y)):
+            return True
+        
+        return False
+        
 
     def detect(self, opt, save_img=False):
 
@@ -69,7 +101,7 @@ class Camera:
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
-
+        names.append('motocycle')
         # Run inference
         t0 = time.time()
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
@@ -137,8 +169,12 @@ class Camera:
                         # cls - classe
                         x_c, y_c, bbox_w, bbox_h = self.bbox_rel(*xyxy)
                         obj = [x_c, y_c, bbox_w, bbox_h]
+                        
                         bbox_xywh.append(obj)
                         confs.append([conf.item()])
+
+                        print("cls : ", cls)
+
                         classes.append(cls)
 
                     xywhs = torch.Tensor(bbox_xywh)
@@ -163,13 +199,6 @@ class Camera:
                     # Write MOT compliant results to file
                     if len(outputs) != 0:
                         for j, output in enumerate(outputs):
-                            bbox_left = output[0]
-                            bbox_top = output[1]
-                            bbox_w = output[2]
-                            bbox_h = output[3]
-                            # id
-                            identity = output[-2]
-                            c = output[-1]
 
                             json_data = self.send_data(output, names)
 
@@ -263,6 +292,12 @@ class Camera:
         identity = output[-2]
         c = output[-1]
 
+        center_x, center_y = self.box_center(output[0 :4])
+        # bike
+        if c == 1 and self.isMotocycle(center_x, center_y):
+
+            c = len(names) - 1
+
         return json.dumps({"classe": names[int(c)],
                            "box_left": int(bbox_left), "box_top": int(bbox_top),
-                           "box_w": int(bbox_w), "box_h": int(bbox_h)})
+                           "box_w": int(bbox_w), "box_h": int(bbox_h), "inside": self.inside_road(center_x, center_y)})
