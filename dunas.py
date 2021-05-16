@@ -1,12 +1,16 @@
-
 from camera import *
 
-class PraiaBarra(Camera):
+class Dunas(Camera):
 
     def __init__(self):
-        self.source = "rtsp://pei:5g-mobix@10.0.19.203:554"
-        self.road_area = ([(1382.5,546.2),(107, 872),(642, 1296),(1421.8, 546.2)],
-        [(107,860),(0, 872), (0,1296), (642, 1296)])
+        #self.source = "./video/video_10s.mp4"
+        self.source = "rtsp://pei:5g-mobix@10.0.19.202:554"
+        """
+            top_left, top_right, bottom_left, bottom_right
+        """
+        self.road_area = ([307.7, 114.2], [[349.6, 106.5 ], [501.1, 477.5 ], [781.1, 479.2]])
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -37,7 +41,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.img_size = check_img_size(args.img_size)
 
-    praia = PraiaBarra()
+    ria = Dunas()
 
     with torch.no_grad():
-        praia.detect(args)
+        ria.detect(args)

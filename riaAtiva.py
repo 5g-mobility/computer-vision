@@ -5,13 +5,9 @@ class RiaAtiva(Camera):
 
     def __init__(self):
         self.source = "rtsp://pei:5g-mobix@10.0.19.201:554"
-        self.road_area = []
-#         polygon1 = [(894.8, 167.9),(1002, 1296),(2165, 1296),(938.5, 167.9)]
-# path1 = mpltPath.Path(polygon1)
+        self.road_area = ([(895.4, 162.5),(1002, 1296),(2165, 1296),(939.1, 162.5)],
+        [(1762,810),(2165, 1296),(2304, 1296),(2304, 984)])
 
-
-# polygon2 = [(1762,810),(2165, 1296),(2304, 1296),(2304, 984)]
-# path2 = mpltPath.Path(polygon2)
 
 
 

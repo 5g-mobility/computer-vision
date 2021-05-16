@@ -23,8 +23,8 @@ class Camera:
 
     def __init__(self):
         self.source = ""
-        self.road_area = [(0,0), (0,0), (0,0) ,(0,0)]
-        self.mplt_path = mpltPath.Path(self.road_area)
+        self.road_area = ([(0,0), (0,0), (0,0) ,(0,0)])
+        self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
 
 
     
@@ -37,7 +37,7 @@ class Camera:
     def inside_road(self, x, y):
         """ check if object is inside road or not """
 
-        return self.mplt_path.contains_point((x, y), radius=1e-9)
+        return any([path.contains_point((x, y), radius=1e-9) for path in self.mplt_path])
 
 
     def box_center(self, *xyxy):
