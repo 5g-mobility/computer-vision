@@ -29,15 +29,17 @@ print("cols ", cols) # x - 2304
 
 # definir as coordenadas que me interessams
 
-top_left = [1762,810]
+#(107,860) (0,0) (0, 872) (642, 1296)
 
-bottom_left = [2165, 1296]
-bottom_right = [2304, 1296]
-top_right = [2304, 979] 
+top_left = [107,860]
+
+bottom_left = [0, 872]
+bottom_right = [0,1296]
+top_right = [642, 1296] 
 
 # dunas - polygon = [(828, 287),(1345, 1294),(2130, 1294),(957, 287)]
 
-polygon1 = [(894.8, 167.9),(1002, 1296),(2165, 1296),(938.5, 167.9)]
+polygon1 = [(895.4, 162.5),(1002, 1296),(2165, 1296),(939.1, 162.5)]
 path1 = mpltPath.Path(polygon1)
 
 
