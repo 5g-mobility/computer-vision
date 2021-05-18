@@ -30,7 +30,7 @@ class DeepSort(object):
         features = self._get_features(bbox_xywh, ori_img)
         bbox_tlwh = self._xywh_to_tlwh(bbox_xywh)
         #filtrar por confidence
-        detections = [Detection(bbox_tlwh[i], conf, features[i], classes[i] ) for i, conf in enumerate(
+        detections = [Detection(bbox_tlwh[i], conf, features[i], classes[i]) for i, conf in enumerate(
             confidences) if conf > self.min_confidence]
 
         # run on non-maximum supression
@@ -48,18 +48,17 @@ class DeepSort(object):
 
         # output bbox identities
         outputs = []
-        print("track_size: ", len(self.tracker.tracks))
+
         for i, track in enumerate(self.tracker.tracks):
             # previsões que tiveram match com as deteções
             if not track.is_confirmed() or track.time_since_update > 1:
-                print("invalid")
+
                 continue
 
             box = track.to_tlwh()
             x1, y1, x2, y2 = self._tlwh_to_xyxy(box)
             track_id = track.track_id
 
-            print("classe: ", track.classe)
             outputs.append(np.array([x1, y1, x2, y2, track_id, track.classe], dtype=np.int))
         if len(outputs) > 0:
             outputs = np.stack(outputs, axis=0)

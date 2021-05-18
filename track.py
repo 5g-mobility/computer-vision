@@ -72,6 +72,7 @@ def detect(opt, save_img=False):
     webcam = source == '0' or source.startswith(
         'rtsp') or source.startswith('http') or source.endswith('.txt')
 
+
     # initialize deepsort
     cfg = get_config()
     cfg.merge_from_file(opt.config_deepsort)
@@ -92,11 +93,13 @@ def detect(opt, save_img=False):
     model = torch.load(weights, map_location=device)[
         'model'].float()  # load to FP32
     model.to(device).eval()
+
     if half:
         model.half()  # to FP16
 
     # Definir o tipo de entrada ( video / camera)
     vid_path, vid_writer = None, None
+
     if webcam:
         view_img = True
         cudnn.benchmark = True  # set True to speed up constant image size inference
@@ -118,6 +121,12 @@ def detect(opt, save_img=False):
     save_path = str(Path(out))
     txt_path = str(Path(out)) + '/results.txt'
 
+    # objects last position (bbox)
+    last_positon = {}
+
+    # number of frames that an object keep the same position
+    frames_stopped = {}
+
     for frame_idx, (path, img, im0s, vid_cap) in enumerate(dataset):
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -135,14 +144,13 @@ def detect(opt, save_img=False):
         t2 = time_synchronized()
 
 
-        print("pred : ", pred)
+
         # Process detections
         for i, det in enumerate(pred):  # detections per image
 
             #det - pytorch tensor (matriz)
 
-            print("det: ", det)
-            print(det[:, -1])
+
 
             #det- detections
             if webcam:  # batch_size >= 1
@@ -160,8 +168,7 @@ def detect(opt, save_img=False):
 
                 # Print results
                 for c in det[:, -1].unique():
-                    print("c: ", c)
-                    print("name: ", names[int(c)])
+
                     # c - classe
                     # n - numero de objetos detetados para a classe
                     # names - dicionario com o nome das classes
@@ -171,7 +178,7 @@ def detect(opt, save_img=False):
                 bbox_xywh = []
                 confs = []
                 classes = []
-                print(det[:, -1])
+
 
                 # Adapt detections to deep sort input format
                 for *xyxy, conf, cls in det:
@@ -188,38 +195,51 @@ def detect(opt, save_img=False):
                 confss = torch.Tensor(confs)
 
 
-                print("antes: ", bbox_xywh)
-                print("depois: ", xywhs)
 
                 #im0 - imagem
 
                 # Pass detections to deepsort
                 outputs = deepsort.update(xywhs, confss, im0, classes)
-                print("outputs: ", outputs)
+
+
+
                 # draw boxes for visualization
                 if len(outputs) > 0:
                     bbox_xyxy = outputs[:, :4]
                     identities = outputs[:, -2]
                     classes = outputs[:, -1]
 
+                    #update last position
+                    for k, obj_id in enumerate(identities):
+
+                        if obj_id in last_positon and all([last_positon[obj_id][x] == bbox_xyxy[k][x] for x in range(0, 4)]):
+                            frames_stopped[obj_id] += 1
+
+                        else:
+                            frames_stopped[obj_id] = 1
+
+                        last_positon[obj_id] = bbox_xyxy[k]
+
+
                     #im0 - image id
                     #bbox_xyxy - bounding boxes
-
 
                     draw_boxes(im0, bbox_xyxy, [names[int(c)] for c in classes] , identities)
                 
                 # Write MOT compliant results to file
                 if save_txt and len(outputs) != 0:
                     for j, output in enumerate(outputs):
+
                         bbox_left = output[0]
                         bbox_top = output[1]
                         bbox_w = output[2]
                         bbox_h = output[3]
+
                         #id
                         identity = output[-2]
                         c = output[-1]
 
-                        json_data = send_data(output, names)
+                        json_data = send_data(output, names, frames_stopped)
 
                         print(json_data)
 
@@ -265,7 +285,7 @@ def detect(opt, save_img=False):
 
     print('Done. (%.3fs)' % (time.time() - t0))
 
-def send_data(output, names):
+def send_data(output, names, frames_stopped):
 
     bbox_left = output[0]
     bbox_top = output[1]
@@ -275,7 +295,16 @@ def send_data(output, names):
     identity = output[-2]
     c = output[-1]
 
-    print(c)
+    if frames_stopped[identity] > 4:
+
+        print("id ", frames_stopped[identity])
+        print("#### o corno esta parado ")
+
+        return json.dumps({"classe": names[int(c)],"box_left": int(bbox_left), "box_top": int(bbox_top),
+                      "box_w": int(bbox_w), "box_h": int(bbox_h),
+                           "parado": True})
+
+
 
     return json.dumps({"classe": names[int(c)],
                       "box_left": int(bbox_left), "box_top": int(bbox_top),
@@ -318,7 +347,7 @@ if __name__ == '__main__':
                         default="deep_sort_pytorch/configs/deep_sort.yaml")
     args = parser.parse_args()
     args.img_size = check_img_size(args.img_size)
-    print(args)
+
 
     with torch.no_grad():
         detect(args)
