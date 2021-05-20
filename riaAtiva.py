@@ -1,26 +1,24 @@
-
 from camera import *
+
 
 class RiaAtiva(Camera):
 
     def __init__(self):
         self.source = "rtsp://pei:5g-mobix@10.0.19.201:554"
-        self.road_area = ([(895.4, 162.5),(1002, 1296),(2165, 1296),(939.1, 162.5)],
-        [(1762,810),(2165, 1296),(2304, 1296),(2304, 984)])
-
-
+        self.road_area = ([(895.4, 162.5), (1002, 1296), (2165, 1296), (939.1, 162.5)],
+                          [(1762, 810), (2165, 1296), (2304, 1296), (2304, 984)])
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str,
-                        default='yolov5/weights/best.pt', help='model.pt path')
+                        default='yolov5/weights/best-riaAtiva.pt', help='model.pt path')
     parser.add_argument('--output', type=str, default='inference/output',
                         help='output folder')  # output folder
     parser.add_argument('--img-size', type=int, default=640,
                         help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float,
-                        default=0.4, help='object confidence threshold')
+                        default=0.7, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float,
                         default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--fourcc', type=str, default='mp4v',

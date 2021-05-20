@@ -1,27 +1,26 @@
 from camera import *
 
+
 class Dunas(Camera):
 
     def __init__(self):
-        #self.source = "./video/video_10s.mp4"
         self.source = "rtsp://pei:5g-mobix@10.0.19.202:554"
         """
             top_left, top_right, bottom_left, bottom_right
         """
-        self.road_area = ([307.7, 114.2], [[349.6, 106.5 ], [501.1, 477.5 ], [781.1, 479.2]])
-
+        self.road_area = ([307.7, 114.2], [[349.6, 106.5], [501.1, 477.5], [781.1, 479.2]])
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str,
-                        default='yolov5/weights/best.pt', help='model.pt path')
+                        default='yolov5/weights/best-duna.pt', help='model.pt path')
     parser.add_argument('--output', type=str, default='inference/output',
                         help='output folder')  # output folder
     parser.add_argument('--img-size', type=int, default=640,
                         help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float,
-                        default=0.4, help='object confidence threshold')
+                        default=0.7, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float,
                         default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--fourcc', type=str, default='mp4v',
@@ -41,7 +40,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.img_size = check_img_size(args.img_size)
 
-    ria = Dunas()
+    dunas = Dunas()
 
     with torch.no_grad():
-        ria.detect(args)
+        dunas.detect(args)
