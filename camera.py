@@ -1,6 +1,5 @@
 import sys
 sys.path.insert(0, './yolov5')
-
 from yolov5.utils.datasets import LoadImages, LoadStreams
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords
 from yolov5.utils.torch_utils import select_device, time_synchronized
@@ -18,16 +17,14 @@ import torch.backends.cudnn as cudnn
 import json
 import matplotlib.path as mpltPath
 
-class Camera:
 
+class Camera:
 
     def __init__(self):
         self.source = ""
-        self.road_area = ([(0,0), (0,0), (0,0) ,(0,0)])
+        self.road_area = ([(0, 0), (0, 0), (0, 0), (0, 0)])
         self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
 
-
-    
     @property
     def palette(self):
         """ bounding boxes colors """
@@ -39,14 +36,12 @@ class Camera:
 
         return any([path.contains_point((x, y), radius=1e-9) for path in self.mplt_path])
 
-
     def box_center(self, *xyxy):
         """ calculate bbox center based xy points """
 
-        #bbox = xyxy[0]
         x1, y1, x2, y2 = xyxy
 
-        return (int(x1) + int(x2))/2 , (int(y1) + int(y2)) /2
+        return (int(x1) + int(x2)) / 2, (int(y1) + int(y2)) / 2
 
     def isMotocycle(self, center_x, center_y):
         """ check if detected object is an motocycle
@@ -57,31 +52,26 @@ class Camera:
 
         if (self.inside_road(center_x, center_y)):
             return True
-        
+
         return False
-        
 
-    def detect(self, opt, save_img=False):
-
-        out, weights, view_img, imgsz = \
-            opt.output, opt.weights, opt.view_img, opt.img_size
-
+    def detect(self, opt):
+        weights, view_img, imgsz = \
+            opt.weights, opt.view_img, opt.img_size
 
         # initialize deepsort
         cfg = get_config()
         cfg.merge_from_file(opt.config_deepsort)
-        deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
+        '''deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
                             max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
                             nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP,
                             max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
                             max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
                             use_cuda=True)
+                            '''
 
         # Initialize
         device = select_device(opt.device)
-        if os.path.exists(out):
-            shutil.rmtree(out)  # delete output folder
-        os.makedirs(out)  # make new output folder
         half = device.type != 'cpu'  # half precision only supported on CUDA
 
         # Load model yolo5
@@ -91,13 +81,9 @@ class Camera:
         if half:
             model.half()  # to FP16
 
-        # Definir o tipo de entrada ( video / camera)
-        vid_path, vid_writer = None, None
-
         view_img = True
         cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(self.source , img_size=imgsz)
-
+        dataset = LoadStreams(self.source, img_size=imgsz)
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
@@ -107,9 +93,6 @@ class Camera:
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
         # run once
         _ = model(img.half() if half else img) if device.type != 'cpu' else None
-
-        save_path = str(Path(out))
-        txt_path = str(Path(out)) + '/results.txt'
 
         for frame_idx, (path, img, im0s, vid_cap) in enumerate(dataset):
             img = torch.from_numpy(img).to(device)
@@ -140,10 +123,9 @@ class Camera:
 
                 p, s, im0 = path[i], '%g: ' % i, im0s[i].copy()
 
-
                 s += '%gx%g ' % img.shape[2:]  # print string
-                save_path = str(Path(out) / Path(p).name)
 
+                '''
                 if det is not None and len(det):
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(
@@ -169,7 +151,7 @@ class Camera:
                         # cls - classe
                         x_c, y_c, bbox_w, bbox_h = self.bbox_rel(*xyxy)
                         obj = [x_c, y_c, bbox_w, bbox_h]
-                        
+
                         bbox_xywh.append(obj)
                         confs.append([conf.item()])
 
@@ -199,7 +181,6 @@ class Camera:
                     # Write MOT compliant results to file
                     if len(outputs) != 0:
                         for j, output in enumerate(outputs):
-
                             json_data = self.send_data(output, names)
 
                             print(json_data)
@@ -207,6 +188,7 @@ class Camera:
                 else:
                     deepsort.increment_ages()
 
+                '''
                 # Print time (inference + NMS)
                 print('%sDone. (%.3fs)' % (s, t2 - t1))
 
@@ -216,28 +198,7 @@ class Camera:
                     if cv2.waitKey(1) == ord('q'):  # q to quit
                         raise StopIteration
 
-                # Save results (image with detections)
-                if save_img:
-                    print('saving img!')
-                    if dataset.mode == 'images':
-                        cv2.imwrite(save_path, im0)
-                    else:
-                        print('saving video!')
-                        if vid_path != save_path:  # new video
-                            vid_path = save_path
-                            if isinstance(vid_writer, cv2.VideoWriter):
-                                vid_writer.release()  # release previous video writer
-
-                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                            vid_writer = cv2.VideoWriter(
-                                save_path, cv2.VideoWriter_fourcc(*opt.fourcc), fps, (w, h))
-                        vid_writer.write(im0)
-
-
         print('Done. (%.3fs)' % (time.time() - t0))
-
 
     def bbox_rel(self, *xyxy):
         """" Calculates the relative bounding box from absolute pixel values. """
@@ -251,15 +212,12 @@ class Camera:
         h = bbox_h
         return x_c, y_c, w, h
 
-
     def compute_color_for_labels(self, label):
         """
         Simple function that adds fixed color depending on the class
         """
         color = [int((p * (label ** 2 - label + 1)) % 255) for p in self.palette]
         return tuple(color)
-
-
 
     def draw_boxes(self, img, bbox, classes, identities=None, offset=(0, 0)):
         for i, box in enumerate(bbox):
@@ -282,7 +240,6 @@ class Camera:
                                      t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
         return img
 
-
     def send_data(self, output, names):
         bbox_left = output[0]
         bbox_top = output[1]
@@ -292,10 +249,9 @@ class Camera:
         identity = output[-2]
         c = output[-1]
 
-        center_x, center_y = self.box_center(output[0 :4])
+        center_x, center_y = self.box_center(output[0:4])
         # bike
         if c == 1 and self.isMotocycle(center_x, center_y):
-
             c = len(names) - 1
 
         return json.dumps({"classe": names[int(c)],
