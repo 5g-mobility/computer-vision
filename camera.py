@@ -1,8 +1,9 @@
 import sys
+
 sys.path.insert(0, './yolov5')
 from yolov5.utils.datasets import LoadImages, LoadStreams
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords, apply_classifier, scale_coords, \
-increment_path, set_logging, xyxy2xywh, check_imshow
+    increment_path, set_logging, xyxy2xywh, check_imshow
 from yolov5.utils.torch_utils import select_device, time_synchronized, load_classifier
 from deep_sort_pytorch.utils.parser import get_config
 from deep_sort_pytorch.deep_sort import DeepSort
@@ -59,16 +60,14 @@ class Camera:
 
         return False
 
-    def detect(self, opt, pid , save_img=False):
+    def detect(self, opt):
         # weights, view_img, imgsz = \
-    #     opt.weights, opt.view_img, opt.img_size
+        #     opt.weights, opt.view_img, opt.img_size
         weights, view_img, save_txt, imgsz = opt.weights, opt.view_img, opt.save_txt, opt.img_size
         save_img = not opt.nosave and not self.source.endswith('.txt')  # save inference images
         webcam = self.source.isnumeric() or self.source.endswith('.txt') or self.source.lower().startswith(
             ('rtsp://', 'rtmp://', 'http://'))
 
-
-        print("####### ", opt.agnostic_nms)
         mplt_path = mpltPath.Path([(828, 287), (1345, 1296), (2143, 1296), (960, 287)])
 
         img_size = (2304, 1296)  # x, y
@@ -101,7 +100,7 @@ class Camera:
         if webcam:
             view_img = check_imshow()
             cudnn.benchmark = True  # set True to speed up constant image size inference
-            dataset = LoadStreams(self.source, img_size=imgsz, stride=stride, pid=pid)
+            dataset = LoadStreams(self.source, img_size=imgsz, stride=stride)
         else:
             dataset = LoadImages(self.source, img_size=imgsz, stride=stride)
 
@@ -132,7 +131,8 @@ class Camera:
             pred = model(img, augment=opt.augment)[0]
 
             # Apply NMS
-            pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
+            pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes,
+                                       agnostic=opt.agnostic_nms)
             t2 = time_synchronized()
 
             # Apply Classifier
@@ -148,7 +148,8 @@ class Camera:
 
                 p = Path(p)  # to Path
                 save_path = str(save_dir / p.name)  # img.jpg
-                txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
+                txt_path = str(save_dir / 'labels' / p.stem) + (
+                    '' if dataset.mode == 'image' else f'_{frame}')  # img.txt
                 s += '%gx%g ' % img.shape[2:]  # print string
                 gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if len(det):
@@ -162,20 +163,20 @@ class Camera:
 
                     # Write results
                     for *xyxy, conf, cls in reversed(det):
-                        #center_x, center_y = box_center(xyxy)
+                        # center_x, center_y = box_center(xyxy)
 
-                        #ret = inside_road(mplt_path, center_x, center_y)
-                        #print(ret)
+                        # ret = inside_road(mplt_path, center_x, center_y)
+                        # print(ret)
                         if save_txt:  # Write to file
 
                             xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
 
                             line = (cls, *xyxy, conf) if opt.save_conf else (
-                            cls, )  # label format
+                                cls,)  # label format
                             with open(txt_path + '.txt', 'a') as f:
                                 f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                            print(self.send_data(*xyxy, c=cls, names=names, path=mplt_path))
+                        print(self.send_data(*xyxy, c=cls, names=names, path=mplt_path))
 
                         if save_img or view_img:  # Add bbox to image
                             label = f'{names[int(cls)]} {conf:.2f}'
@@ -219,14 +220,13 @@ class Camera:
             print(f"Results saved to {save_dir}{s}")
 
         print(f'Done. ({time.time() - t0:.3f}s)')
-          
+
         # except TimeoutError as time_err:
         #     print(f'Timeout error: {time_err}')
         #     flag_repeat_LoadStream = True
         #     dataset = LoadStreams(source, img_size=imgsz, stride=stride)
         # except Exception as e:
         #     print(f'Exception occur when detecting: {e}')
-
 
         # # initialize deepsort
         # cfg = get_config()
@@ -294,7 +294,6 @@ class Camera:
 
         #         s += '%gx%g ' % img.shape[2:]  # print string
 
-                
         #         if len(det):
         #             # Rescale boxes from img_size to im0 size
         #             det[:, :4] = scale_coords(
@@ -335,7 +334,7 @@ class Camera:
         #             print("depois: ", xywhs)
 
         #             # im0 - imagem
-                    
+
         #             # Pass detections to deepsort
         #             #outputs = deepsort.update(xywhs, confss, im0, classes)
         #             #print("outputs: ", outputs)
@@ -353,11 +352,10 @@ class Camera:
         #                     json_data = self.send_data(output, names)
 
         #                     print(json_data)
-                
+
         #         else:
         #             deepsort.increment_ages()
-                
-            
+
         #         # Print time (inference + NMS)
         #         print('%sDone. (%.3fs)' % (s, t2 - t1))
 
@@ -409,20 +407,18 @@ class Camera:
                                      t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
         return img
 
-    def send_data(self, output, names):
-        bbox_left = output[0]
-        bbox_top = output[1]
-        bbox_w = output[2]
-        bbox_h = output[3]
+    def send_data(*xyxy, c, names, path):
+        bbox_left = xyxy[1]
+        bbox_top = xyxy[2]
+        bbox_w = xyxy[3]
+        bbox_h = xyxy[4]
         # id
-        identity = output[-2]
-        c = output[-1]
 
-        center_x, center_y = self.box_center(output[0:4])
+        # center_x, center_y = box_center(xyxy)
         # bike
-        if c == 1 and self.isMotocycle(center_x, center_y):
+        if c == 1 and isMotocycle(path, center_x, center_y):
             c = len(names) - 1
 
         return json.dumps({"classe": names[int(c)],
                            "box_left": int(bbox_left), "box_top": int(bbox_top),
-                           "box_w": int(bbox_w), "box_h": int(bbox_h), "inside": self.inside_road(center_x, center_y)})
+                           "box_w": int(bbox_w), "box_h": int(bbox_h)})

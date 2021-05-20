@@ -2,19 +2,13 @@ import math
 import cv2
 import datetime
 import argparse
-#from easyocr import Reader
+from easyocr import Reader
 import re
 from dunas import Dunas
 from praiaBarra import PraiaBarra
 from riaAtiva import RiaAtiva
 import torch
 import os
-
-
-class AttributeDict(dict):
-    __slots__ = ()
-    __getattr__ = dict.__getitem__
-    __setattr__ = dict.__setitem__
 
 
 def connectToCam(url, user, pw, port):
@@ -50,39 +44,6 @@ def readFrames(url, user, pw, port=554):
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
-    # parser.add_argument('--cam',
-    #                     choices=['riaAtiva', 'ponteBarra', 'dunas'],
-    #                     help='Camera to be used', required=True)
-    # args = parser.parse_args()
-    # opt = AttributeDict()
-
-    # opt.config_deepsort = 'deep_sort_pytorch/configs/deep_sort.yaml'
-    # opt.conf_thres = 0.4
-    # opt.iou_thres = 0.5
-    # opt.classes = [0]
-    # opt.view_img = False
-    # opt.img_size = 640
-    # opt.device = 'cpu'
-    # opt.augment = False
-    # opt.agnostic_nms = False
-    # opt.weights = './yolov5/weights/best-riaAtiva.pt'
-    
-    # pid = os.getpid()
-    # #if args.cam == 'riaAtiva':
-    # location = RiaAtiva()
-    #     #opt.weights = './yolov5/weights/best-riaAtiva.pt'
-    # # elif args.cam == 'ponteBarra':
-    # #     location = PraiaBarra()
-    # #     opt.weights = './yolov5/weights/best-ponte.pt'
-    # # elif args.cam == 'dunas':
-    # #     location = Dunas()
-    # #     opt.weights = './yolov5/weights/best-duna.pt'
-    # opt.pid = os.getpid()
-    # with torch.no_grad():
-    #     location.detect(opt)
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
     parser.add_argument('--cam',
@@ -91,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path(s)')
     #parser.add_argument('--source', type=str, default='data/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.7, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
@@ -106,9 +67,8 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     opt = parser.parse_args()
-    print(opt)
-    #check_requirements(exclude=('pycocotools', 'thop'))
-    pid = os.getpid()
+
+    print(opt.save_txt)
 
     if opt.cam == 'riaAtiva':
         location = RiaAtiva()
@@ -120,10 +80,6 @@ if __name__ == '__main__':
         location = Dunas()
         opt.weights = './yolov5/weights/best-duna.pt'
 
-    opt.pid = os.getpid()
-
-
-
     with torch.no_grad():
-        location.detect(opt, pid)
+        location.detect(opt)
 
