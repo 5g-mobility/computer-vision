@@ -1,8 +1,18 @@
 from celery import Celery
 import json
 
-mock_data = [{"car": 4, "person": 2, "bike": 5}, {"car": 9, "person": 1, "bike": 0}]
 
-app = Celery('tasks', broker='amqp://django:djangopass@localhost:5672/celery')
+class CeleryTasks:
 
-app.send_task('mobility_5g_rest_api.tasks.sensor_fusion', kwargs={'json': mock_data})
+    def __init__(self, rabbit_url='localhost', port=5672, user='django', pw='djangopass', vhost='celery'):
+        # 'tasks' is the name of the current module
+        self.app = Celery('tasks', broker='amqp://{}:{}@{}:{}/{}'.format(user, pw, rabbit_url, port, vhost))
+
+    def send_data(self, json):
+        print("Sending JSON: {}".format(json))
+        self.app.send_task('mobility_5g_rest_api.tasks.sensor_fusion', kwargs={'json': json})
+
+
+
+
+

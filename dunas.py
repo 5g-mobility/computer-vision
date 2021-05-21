@@ -3,12 +3,14 @@ from camera import *
 
 class Dunas(Camera):
 
-    def __init__(self):
+    def __init__(self, celery):
         self.source = "rtsp://pei:5g-mobix@10.0.19.202:554"
         """
             top_left, top_right, bottom_left, bottom_right
         """
         self.road_area = ([307.7, 114.2], [[349.6, 106.5], [501.1, 477.5], [781.1, 479.2]])
+        self.celery = celery
+        super().__init__()
 
 
 if __name__ == '__main__':

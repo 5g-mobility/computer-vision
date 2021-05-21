@@ -1,4 +1,10 @@
+import queue
+import re
 import sys
+import threading
+from datetime import datetime
+from easyocr import Reader
+import random
 
 sys.path.insert(0, './yolov5')
 from yolov5.utils.datasets import LoadImages, LoadStreams
@@ -21,14 +27,19 @@ import torch.backends.cudnn as cudnn
 import json
 import matplotlib.path as mpltPath
 from numpy import random
+import numpy as np
 
 
 class Camera:
 
     def __init__(self):
-        self.source = ""
-        self.road_area = ([(0, 0), (0, 0), (0, 0), (0, 0)])
+        # self.source = ""
+        # self.road_area = ([(0, 0), (0, 0), (0, 0), (0, 0)])
         self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
+        self.time_objects = {}  # Object JSON Data to be sent to celery regarding one timestamp
+        self.q = queue.Queue()  # Queue of frames to be OCR
+        self.old_ids = set()  # Old Deep Sort Object Ids -> maybe this can be cleaned up every x time
+        threading.Thread(target=self.process_data, daemon=True).start()
 
     @property
     def palette(self):
@@ -61,8 +72,6 @@ class Camera:
         return False
 
     def detect(self, opt):
-        # weights, view_img, imgsz = \
-        #     opt.weights, opt.view_img, opt.img_size
         weights, view_img, save_txt, imgsz = opt.weights, opt.view_img, opt.save_txt, opt.img_size
         save_img = not opt.nosave and not self.source.endswith('.txt')  # save inference images
         webcam = self.source.isnumeric() or self.source.endswith('.txt') or self.source.lower().startswith(
@@ -119,7 +128,16 @@ class Camera:
         #     flag_repeat_LoadStream = False
         #     print('Running one more time')
         #     try:
+
+        old_im0s = np.array([], [])
+
         for path, img, im0s, vid_cap in dataset:
+            if np.array_equal(im0s, old_im0s):
+                time.sleep(0.01)
+                continue
+
+            old_im0s = im0s
+
             img = torch.from_numpy(img).to(device)
             img = img.half() if half else img.float()  # uint8 to fp16/32
             img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -168,7 +186,6 @@ class Camera:
                         # ret = inside_road(mplt_path, center_x, center_y)
                         # print(ret)
                         if save_txt:  # Write to file
-
                             xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
 
                             line = (cls, *xyxy, conf) if opt.save_conf else (
@@ -176,7 +193,7 @@ class Camera:
                             with open(txt_path + '.txt', 'a') as f:
                                 f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                        print(self.send_data(*xyxy, c=cls, names=names, path=mplt_path))
+                        print(self.send_data(*xyxy, c=cls, names=names, path=mplt_path, frame=im0))
 
                         if save_img or view_img:  # Add bbox to image
                             label = f'{names[int(cls)]} {conf:.2f}'
@@ -208,12 +225,6 @@ class Camera:
                                 save_path += '.mp4'
                             vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                         vid_writer.write(im0)
-            # except TimeoutError as time_err:
-            #     print(f'Timeout error: {time_err}')
-            #     flag_repeat_LoadStream = True
-            #     dataset = LoadStreams(source, img_size=imgsz, stride=stride)
-            # except Exception as e:
-            #     print(f'Exception occur when detecting: {e}')
 
         if save_txt or save_img:
             s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
@@ -407,11 +418,29 @@ class Camera:
                                      t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
         return img
 
-    def send_data(*xyxy, c, names, path):
-        bbox_left = xyxy[1]
-        bbox_top = xyxy[2]
-        bbox_w = xyxy[3]
-        bbox_h = xyxy[4]
+    def send_data(self, *xyxy, c, names, path, frame):
+        """
+        Only send frames to this function if an object is detected to further processing.
+        It is expected that deep_sort sends objects data with ids associated to them
+        Only send cars, trucks etc if they are on the road and on radar zone
+        """
+        id = random.randint(1, 1000)  # Later on, this will be the deep sort id
+
+        if id in self.old_ids:
+            """
+            If this object already appeared in older frames, it is no longer necessary to process. 
+            If it is a car, truck, bicycle, etc in the radar zone, it is only necessary to sensor fusion the first 
+            appearance in the radar zone. If it is a person in bike lane or something, we only report the first time 
+            that person it is seen.
+            """
+            return
+        else:
+            self.old_ids.add(id)
+
+        bbox_left = xyxy[0]
+        bbox_top = xyxy[1]
+        bbox_w = xyxy[2]
+        bbox_h = xyxy[3]
         # id
 
         # center_x, center_y = box_center(xyxy)
@@ -419,6 +448,53 @@ class Camera:
         if c == 1 and isMotocycle(path, center_x, center_y):
             c = len(names) - 1
 
-        return json.dumps({"classe": names[int(c)],
+        # id should be the id from deep sort
+        # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
+        # Dps fala comigo Miguel, ass Hugo
+        data = json.dumps({"class": names[int(c)],
                            "box_left": int(bbox_left), "box_top": int(bbox_top),
-                           "box_w": int(bbox_w), "box_h": int(bbox_h)})
+                           "box_w": int(bbox_w), "box_h": int(bbox_h), "id": id})
+
+        self.q.put((data, frame[50:125, 1725:2250]))
+
+        return data
+
+    def process_data(self):
+        """Processes time of the frame and, accordingly with the data, it will send """
+        while True:
+            json, image_time = self.q.get()
+            now = datetime.now()
+            time_from_image = Reader(['en']).readtext(image_time, detail=0)
+            res = re.findall("\d{2}", time_from_image[0])
+            try:
+                date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
+                                         "%Y %m %d %H %M %S")
+                if date.year != now.year:
+                    print("Bad Year processed, was: {}".format(date.year))
+                    date.year = now.year
+                if date.month != now.month:
+                    print("Bad Month processed, was: {}".format(date.month))
+                    date.month = now.month
+                if date.day != now.day:
+                    print("Bad Day processed, was: {}".format(date.day))
+                    date.day = now.day
+                if date.hour != now.hour:
+                    #bgfbg
+                    print("Bad Hour processed, was: {}".format(date.hour))
+                    date.hour = now.hour
+
+                print(date)
+
+                json['date'] = date
+
+                if date not in self.time_objects:
+                    # Sending old datetime objects data
+                    for key in self.time_objects:
+                        for json in self.time_objects[key]:
+                            self.celery.send_data(json)
+                    self.time_objects[date] = [json]
+
+            except ValueError:
+                print("Error while parsing date")
+
+            self.q.task_done()

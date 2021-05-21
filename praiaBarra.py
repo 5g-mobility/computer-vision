@@ -3,10 +3,12 @@ from camera import *
 
 class PraiaBarra(Camera):
 
-    def __init__(self):
+    def __init__(self, celery):
         self.source = "rtsp://pei:5g-mobix@10.0.19.203:554"
         self.road_area = ([(1382.5, 546.2), (107, 872), (642, 1296), (1421.8, 546.2)],
                           [(107, 860), (0, 872), (0, 1296), (642, 1296)])
+        self.celery = celery
+        super().__init__()
 
 
 if __name__ == '__main__':
