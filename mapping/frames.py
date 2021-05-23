@@ -1,5 +1,6 @@
 import cv2
-vidcap = cv2.VideoCapture('exp2/pei_5g-mobix_10.0.19.203_554.mp4')
+
+vidcap = cv2.VideoCapture('exp3/pei_5g-mobix_10.0.19.201_554.mp4')
 success,image = vidcap.read()
 count = 0
 while success:
