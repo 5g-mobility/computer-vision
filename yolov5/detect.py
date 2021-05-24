@@ -17,8 +17,8 @@ import matplotlib.path as mpltPath
 
 
 def resize(img, x, y):
-    return cv2.resize(img, (x, y))
 
+    return cv2.resize(img, (x, y))
 
 def isMotocycle(path, center_x, center_y):
     """ check if detected object is an motocycle
@@ -32,26 +32,28 @@ def isMotocycle(path, center_x, center_y):
 
     return False
 
-
 def send_data(*xyxy, c, names, path):
+    
     bbox_left = xyxy[0]
     bbox_top = xyxy[1]
     bbox_w = xyxy[2]
     bbox_h = xyxy[3]
     # id
 
+
     center_x, center_y = box_center(xyxy)
     # bike
     if c == 1 and isMotocycle(path, center_x, center_y):
+
         c = len(names) - 1
 
     return json.dumps({"classe": names[int(c)],
-                       "box_left": int(bbox_left), "box_top": int(bbox_top),
-                       "box_w": int(bbox_w), "box_h": int(bbox_h), "inside": inside_road(path, center_x, center_y)})
+                        "box_left": int(bbox_left), "box_top": int(bbox_top),
+                        "box_w": int(bbox_w), "box_h": int(bbox_h), "inside": inside_road(path, center_x, center_y)})
 
 
 def inside_road(path, center_x, center_y):
-    # top_left, top_right, bottom_left, bottom_right
+    #top_left, top_right, bottom_left, bottom_right
 
     return path.contains_point((center_x, center_y), radius=1e-9)
 
@@ -60,18 +62,19 @@ def box_center(*xyxy):
     print(xyxy)
     bbox = xyxy[0]
     x1, y1, x2, y2 = bbox
-    return (int(x1) + int(x2)) / 2, (int(y1) + int(y2)) / 2
+    return (int(x1) + int(x2))/2 , (int(y1) + int(y2)) /2
 
-
+    
 def detect(pid, save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
 
-    mplt_path = mpltPath.Path([(828, 287), (1345, 1296), (2143, 1296), (960, 287)])
 
-    img_size = (2304, 1296)  # x, y
+    mplt_path = mpltPath.Path([(828, 287),(1345, 1296),(2143, 1296),(960, 287)])
+    
+    img_size = (2304,1296) # x, y
 
     # Directories
     save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
@@ -86,6 +89,11 @@ def detect(pid, save_img=False):
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
+
+
+    print("image_size: ", img_size)
+    # TODO: usar o recise na imagem 
+
 
     if half:
         model.half()  # to FP16
@@ -130,6 +138,8 @@ def detect(pid, save_img=False):
         # Inference
         t1 = time_synchronized()
         pred = model(img, augment=opt.augment)[0]
+        
+        
 
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
@@ -138,6 +148,8 @@ def detect(pid, save_img=False):
         # Apply Classifier
         if classify:
             pred = apply_classifier(pred, modelc, img, im0s)
+
+  
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
@@ -163,19 +175,21 @@ def detect(pid, save_img=False):
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     center_x, center_y = box_center(xyxy)
+                    
 
                     ret = inside_road(mplt_path, center_x, center_y)
                     print(ret)
                     if save_txt:  # Write to file
-
+                        
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
 
-                        line = (cls, *xyxy, conf, ret) if opt.save_conf else (
-                        cls, center_x, center_y, ret)  # label format
+                        
+                        #print( inside_road( ))
+                        line = (cls, *xyxy, conf,ret ) if opt.save_conf else (cls, center_x, center_y, ret)  # label format
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                        print(send_data(*xyxy, c=cls, names=names, path=mplt_path))
+                        print(send_data(*xyxy,c= cls, names= names,path= mplt_path))
 
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
@@ -243,7 +257,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=('pycocotools', 'thop'))
-    pid = os.getpid()
+    pid=os.getpid()
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
