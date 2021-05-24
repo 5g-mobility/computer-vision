@@ -175,7 +175,7 @@ class Camera:
                             with open(txt_path + '.txt', 'a') as f:
                                 f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                            print(self.send_data(*xyxy, c=cls, names=names, path=mplt_path))
+                            print(self.send_data(*xyxy, c=cls, names=names))
 
                         if save_img or view_img:  # Add bbox to image
                             label = f'{names[int(cls)]} {conf:.2f}'
@@ -229,15 +229,17 @@ class Camera:
 
 
         # # initialize deepsort
-        # cfg = get_config()
-        # cfg.merge_from_file(opt.config_deepsort)
-        # '''deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
-        #                     max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
-        #                     nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP,
-        #                     max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
-        #                     max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
-        #                     use_cuda=True)
-        #                     '''
+        cfg = get_config()
+
+        print()
+        cfg.merge_from_file(opt.config_deepsort)
+        deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
+                            max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
+                            nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP,
+                            max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
+                            max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
+                            use_cuda=True)
+                            
 
         # # Initialize
         # device = select_device(opt.device)
