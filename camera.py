@@ -123,12 +123,6 @@ class Camera:
             model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
         t0 = time.time()
 
-        # flag_repeat_LoadStream = True
-        # while flag_repeat_LoadStream:
-        #     flag_repeat_LoadStream = False
-        #     print('Running one more time')
-        #     try:
-
         old_im0s = np.array([], [])
 
         for path, img, im0s, vid_cap in dataset:
@@ -476,10 +470,11 @@ class Camera:
                     print("Bad Month processed, was: {}".format(date.month))
                     date.month = now.month
                 if date.day != now.day:
+                    # Maybe it's better to check if the difference between the days is higher than two
                     print("Bad Day processed, was: {}".format(date.day))
                     date.day = now.day
                 if date.hour != now.hour:
-                    #bgfbg
+                    # Maybe it's better to check if the difference between the hours is higher than two
                     print("Bad Hour processed, was: {}".format(date.hour))
                     date.hour = now.hour
 
