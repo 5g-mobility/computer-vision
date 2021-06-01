@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+coco/**
+**.jpg
+**.mp4
+**.pt
 # C extensions
 *.so
 
@@ -143,6 +147,11 @@ cython_debug/
 ### PyCharm ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and Webstorm
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+
+.idea/
+
+yolov5/runs/
+runs/
 
 # User-specific stuff:
 .idea/**/workspace.xml

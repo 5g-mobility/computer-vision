@@ -259,17 +259,10 @@ class LoadWebcam:  # for inference
 
 
 class LoadStreams:  # multiple IP or RTSP cameras
-    def __init__(self,sources='streams.txt', img_size=640, stride=32, pid=0):
+    def __init__(self, sources='streams.txt', img_size=640, stride=32):
         self.mode = 'stream'
         self.img_size = img_size
         self.stride = stride
-        self.pid = pid
-        self.cap = None
-        self.s = None
-
-        self.error = False
-        # self.grabbed_frame = False
-
 
         if os.path.isfile(sources):
             with open(sources, 'r') as f:
@@ -280,29 +273,17 @@ class LoadStreams:  # multiple IP or RTSP cameras
         n = len(sources)
         self.imgs = [None] * n
         self.sources = [clean_str(x) for x in sources]  # clean source names for later
-        for i, s in enumerate(sources):  # index, source
-
-
-            # Start thread to read frames from video stream
+        for i, s in enumerate(sources):
+            # Start the thread to read frames from the video stream
             print(f'{i + 1}/{n}: {s}... ', end='')
-            if 'youtube.com/' in s or 'youtu.be/' in s:  # if source is YouTube video
-                check_requirements(('pafy', 'youtube_dl'))
-                import pafy
-                s = pafy.new(s).getbest(preftype="mp4").url  # YouTube URL
-            self.s = eval(s) if s.isnumeric() else s  # i.e. s = '0' local webcam
-            self.cap = cv2.VideoCapture(self.s)
-            print("-------------------")
-
-
-            assert self.cap.isOpened(), f'Failed to open {s}'
-            w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            self.fps = self.cap.get(cv2.CAP_PROP_FPS) % 100
-
-            _, self.imgs[i] = self.cap.read()  # guarantee first frame
-
-            thread = Thread(target=self.update, args=([i]), daemon=True)
-            print(f' success ({w}x{h} at {self.fps:.2f} FPS).')
+            cap = cv2.VideoCapture(eval(s) if s.isnumeric() else s)
+            assert cap.isOpened(), f'Failed to open {s}'
+            w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS) % 100
+            _, self.imgs[i] = cap.read()  # guarantee first frame
+            thread = Thread(target=self.update, args=([i, cap, eval(s) if s.isnumeric() else s]), daemon=True)
+            print(f' success ({w}x{h} at {fps:.2f} FPS).')
             thread.start()
         print('')  # newline
 
@@ -312,57 +293,24 @@ class LoadStreams:  # multiple IP or RTSP cameras
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
 
+    @staticmethod
+    def connect_to_cam(url):
+        cap = cv2.VideoCapture(url)
+        assert cap.isOpened(), f'Failed to open {s}'
+        return cap
 
-        # quando update terminar vem para aqui
-        #thread.join()
-        print('Estou depois do join à tua espera cão')
-        #if self.error:
-        #    self = self.__init__(self.mode,self.img_size, self.stride)
-
-
-    def grab_frame(self):
-        # self.grabbed_frame = False
-        self.cap.grab()
-        # self.grabbed_frame = True
-
-
-    def update(self, index):
+    def update(self, index, cap, url):
         # Read next stream frame in a daemon thread
         n = 0
-        while self.cap.isOpened():
+        while cap.isOpened():
             n += 1
-            # _, self.imgs[index] = cap.read()
-            t1 = Thread(target=self.grab_frame, args=())
-            t1.start()
-            t1.join(timeout=5)
-
-            if t1.is_alive():
-                
-
-                os.system("kill "+str(self.pid) +" && cd /Users/miguel/Documents/ua/pi/computer-vision/yolov5 && source venv/bin/activate && arch -x86_64 /usr/bin/python3 detect.py --source rtsp://pei:5g-mobix@10.0.19.203:554 --weights weights/best.pt --view-img --conf 0.5"  )
-                
-                # raise TimeoutError
-
-                #self.reconnect_stream()
-                #self.reconnect_stream()
-
-                
-
-            if n == 4:  # read every 4th frame
-                success, im = self.cap.retrieve()
-
+            if n == 2:  # read every 2th frame
+                success, im = cap.read()
+                if not success:
+                    cap = self.connect_to_cam(url)
                 self.imgs[index] = im if success else self.imgs[index] * 0
                 n = 0
-    
-            time.sleep(1 / self.fps)  # wait time
-        print("sai do ciclo ")
-
-
-    def reconnect_stream(self):
-
-        self.cap.release()
-
-        #self.cap = cv2.VideoCapture(self.s)
+            time.sleep(0.01)  # wait time
 
     def __iter__(self):
         self.count = -1
@@ -389,6 +337,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
 
     def __len__(self):
         return 0  # 1E12 frames = 32 streams at 30 FPS for 30 years
+
 
 
 def img2label_paths(img_paths):
