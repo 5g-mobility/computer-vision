@@ -45,6 +45,7 @@ def compute_color_for_labels(label):
 
 def draw_boxes(img, bbox, classes, identities=None, offset=(0, 0)):
     for i, box in enumerate(bbox):
+        
         x1, y1, x2, y2 = [int(i) for i in box]
         x1 += offset[0]
         x2 += offset[0]
@@ -224,7 +225,7 @@ def detect(opt, save_img=False):
                     #bbox_xyxy - bounding boxes
 
                     draw_boxes(im0, bbox_xyxy, [names[int(c)] for c in classes] , identities)
-
+                
                 # Write MOT compliant results to file
                 if save_txt and len(outputs) != 0:
                     for j, output in enumerate(outputs):

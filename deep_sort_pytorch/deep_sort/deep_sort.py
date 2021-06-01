@@ -52,7 +52,6 @@ class DeepSort(object):
         for i, track in enumerate(self.tracker.tracks):
             # previsões que tiveram match com as deteções
             if not track.is_confirmed() or track.time_since_update > 1:
-
                 continue
 
             box = track.to_tlwh()
