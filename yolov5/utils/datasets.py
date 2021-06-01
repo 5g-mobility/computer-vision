@@ -265,7 +265,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         self.img_size = img_size
         self.stride = stride
 
-        self.pid = pid
+        #self.pid = pid
         self.cap = None
         self.s = None
 
