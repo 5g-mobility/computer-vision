@@ -195,6 +195,7 @@ class LoadImages:  # for inference
         self.frame = 0
         self.cap = cv2.VideoCapture(path)
         self.nframes = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS)
 
     def __len__(self):
         return self.nf  # number of files
@@ -270,7 +271,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         self.error = False
         # self.grabbed_frame = False
 
-
+        
         if os.path.isfile(sources):
             with open(sources, 'r') as f:
                 sources = [x.strip() for x in f.read().strip().splitlines() if len(x.strip())]
