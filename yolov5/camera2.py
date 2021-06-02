@@ -21,6 +21,7 @@ from dataObject import DataObject
 import json
 import queue
 import pickle
+import pandas as pd
 
 IMG_SIZE = 2304, 1296
 
@@ -89,13 +90,16 @@ class Camera:
         if obj.cls == 1 and self.isMotocycle(center_x, center_y):
             obj.cls = len(names) - 1
 
-        #lat, lon = self.mapping.predict()
-        lat, lon  = 1, 1
+       
+        
+        
+        lat, lon = self.mapping.predict(np.asarray([obj.xyxy[0:2]])).tolist()[0]
+
+
+
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
-
-        print(obj.cls)
 
         data = json.dumps({"class": names[int(obj.cls)],"lat": lat,
         "long": lon, "speed": obj.velocity
@@ -134,12 +138,9 @@ class Camera:
 
             bbox = []
             
-        #print(torch.tensor(bbox_xyxy))
         bbox_xyxy = scale_coords(
         img.shape[2:], torch.tensor(bbox_xyxy), im0.shape).round()
     
-        # objects_detection = [obj.last_detection.points.tolist() for obj in tracked_objects]
-        # bbox_xyxy = [obj for x in objects_detection.points for obj in x ]
 
         bbox_xywh = xyxy2xywh(bbox_xyxy)
 
