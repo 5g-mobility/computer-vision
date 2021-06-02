@@ -4,8 +4,8 @@ from tasks import CeleryTasks
 class PraiaBarra(Camera):
 
     def __init__(self, celery):
-        road_area = [([(1382.5, 546.2), (107, 872), (642, 1296), (1421.8, 546.2)],
-                          [(107, 860), (0, 872), (0, 1296), (642, 1296)])]
+        road_area = ( [(1382.5, 546.2), (107, 872), (642, 1296), (1421.8, 546.2)],
+                          [(107, 860), (0, 872), (0, 1296), (642, 1296)])
         self.celery = celery
         model = "../sensor_fusion/ponte.pkl"
         super().__init__(road_area)
