@@ -71,35 +71,33 @@ class Camera:
                     bbox.append(x)
 
             bbox_xyxy.append(bbox)
-            print(bbox)
 
             xywh = xyxy2xywh_no_tensor(bbox)
 
             track_data.append(
-                DataObject(xywh, obj.last_detection.scores[0], 
+                DataObject(obj.id, xywh, obj.last_detection.scores[0], 
                 obj.last_detection.scores[1], 
                 self.estimateSpeed(xywh, xyxy2xywh_no_tensor(last_xyxy) )))
 
             bbox = []
             
-        
-
-
-
         #print(torch.tensor(bbox_xyxy))
-        bbox_xyxy = scale_coord(
+        bbox_xyxy = scale_coords(
         img.shape[2:], torch.tensor(bbox_xyxy), im0.shape).round()
     
         # objects_detection = [obj.last_detection.points.tolist() for obj in tracked_objects]
         # bbox_xyxy = [obj for x in objects_detection.points for obj in x ]
-        identities = [obj.id for obj in tracked_objects]
 
         bbox_xywh = xyxy2xywh(bbox_xyxy)
 
-        return bbox_xyxy, identities, track_data
+        return bbox_xyxy, track_data
+
+
 
     def euclidean_distance(self, detection, tracked_object):
         return np.linalg.norm(detection.points - tracked_object.estimate)
+
+
 
     def detect(self, opt, save_img=False):
         source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
@@ -217,10 +215,10 @@ class Camera:
 
                 if tracked_objects:
 
-                    bbox_xyxy,identities, track_data =  self.process_tracking_data(tracked_objects, img, im0)
+                    bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0)
 
-                    print(track_data)
-                    #draw_boxes(im0, bbox_xyxy, indetities)
+                    
+                    draw_boxes(im0, bbox_xyxy, track_data)
 
                 # Print time (inference + NMS)
                 print(f'{s}Done. ({t2 - t1:.3f}s)')

@@ -17,7 +17,7 @@ def palette():
 
 
 
-def compute_color_for_labels(self, label):
+def compute_color_for_labels(label):
     """
     Simple function that adds fixed color depending on the class
     """
@@ -25,24 +25,25 @@ def compute_color_for_labels(self, label):
     return tuple(color)
 
 
-def draw_boxes(self, img, bbox, classes, identities=None, offset=(0, 0)):
+def draw_boxes(img, bbox, track_objects, offset=(0, 0)):
+    
+    """ draw bbox of each object in frame """ 
+
     for i, box in enumerate(bbox):
+
         x1, y1, x2, y2 = [int(i) for i in box]
         x1 += offset[0]
         x2 += offset[0]
         y1 += offset[1]
         y2 += offset[1]
         # box text and bar
-        id = int(identities[i]) if identities is not None else 0
-        color = self.compute_color_for_labels(id)
-        cls = classes[i]
-
-        label = '{}{:d}  {}'.format("", id, cls)
+        id = track_objects[i].idx
+        color = compute_color_for_labels(id)
+        label = '{}{:d}'.format("", id)
         t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 2, 2)[0]
         cv2.rectangle(img, (x1, y1), (x2, y2), color, 3)
         cv2.rectangle(
             img, (x1, y1), (x1 + t_size[0] + 3, y1 + t_size[1] + 4), color, -1)
         cv2.putText(img, label, (x1, y1 +
-                                    t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
-
+                                t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
     return img
