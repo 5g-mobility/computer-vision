@@ -18,6 +18,8 @@ import cv2
 import matplotlib.path as mpltPath
 from tracker import Tracker, Detection
 from dataObject import DataObject
+import json
+import queue
 
 IMG_SIZE = 2304, 1296
 
@@ -30,6 +32,9 @@ class Camera:
         self.max_distance_between_points = 30
         self.ppm = 10
         self.fps = None
+        self.time_objects = {}  # Object JSON Data to be sent to celery regarding one timestamp
+        self.q = queue.Queue()  # Queue of frames to be OCR
+        self.old_ids = set()  # Old Deep Sort Object Ids -> maybe this can be cleaned up every x time
         self.tracker = Tracker(
 
         distance_function= self.euclidean_distance,
@@ -51,8 +56,52 @@ class Camera:
         speed = d_meters * self.fps * 3.6
         return speed
 	
+    def send_data(self, obj, names, frame):
+        """
+        Only send frames to this function if an object is detected to further processing.
+        It is expected that deep_sort sends objects data with ids associated to them
+        Only send cars, trucks etc if they are on the road and on radar zone
+        """
+        id = random.randint(1, 1000)  # Later on, this will be the deep sort id
 
+        if id in self.old_ids:
+            """
+            If this object already appeared in older frames, it is no longer necessary to process. 
+            If it is a car, truck, bicycle, etc in the radar zone, it is only necessary to sensor fusion the first 
+            appearance in the radar zone. If it is a person in bike lane or something, we only report the first time 
+            that person it is seen.
+            """
+            return
+        else:
+            self.old_ids.add(id)
 
+        bbox_left = obj.xyxy[0]
+        bbox_top = obj.xyxy[1]
+        bbox_w = obj.xyxy[2]
+        bbox_h = obj.xyxy[3]
+        # id
+        print(obj.xyxy)
+
+        return
+        center_x, center_y = box_center(obj.xyxy)
+        # bike
+        if obj.cls == 1 and self.isMotocycle(center_x, center_y):
+            obj.cls = len(names) - 1
+
+        #lat, lon = self.mapping.predict()
+        lat, lon  = 1, 1
+        # id should be the id from deep sort
+        # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
+        # Dps fala comigo Miguel, ass Hugo
+        data = json.dumps({"class": names[int(obj.cls)],"lat": lat,
+        "long": lon, "speed": obj.velocity
+                           , "id": id})
+
+        print(data)
+
+        #self.q.put((data, frame[50:125, 1725:2250]))
+
+        #return data
 
     def process_tracking_data(self, tracked_objects, img, im0):
         
@@ -91,6 +140,27 @@ class Camera:
         bbox_xywh = xyxy2xywh(bbox_xyxy)
 
         return bbox_xyxy, track_data
+    
+
+
+    def inside_road(self, x, y):
+        """ check if object is inside road or not """
+
+        return any([path.contains_point((x, y), radius=1e-9) for path in self.mplt_path])
+
+
+
+    def isMotocycle(self, center_x, center_y):
+        """ check if detected object is an motocycle
+
+            if ouside of road - cyclist
+            else - motocycle
+        """
+
+        if (self.inside_road(center_x, center_y)):
+            return True
+
+        return False
 
 
 
@@ -138,11 +208,6 @@ class Camera:
 
         self.fps = dataset.fps
 
-        print(self.fps)
-
-        
-
-
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
         colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
@@ -151,7 +216,18 @@ class Camera:
         t0 = time.time()
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
         _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+
+        old_im0s = np.array([], [])
+
         for path, img, im0s, vid_cap in dataset:
+
+            if np.array_equal(im0s, old_im0s):
+                time.sleep(0.01)
+                continue
+
+            old_im0s = im0s
+
+
             img = torch.from_numpy(img).to(device)
             img = img.half() if half else img.float()  # uint8 to fp16/32
             img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -217,7 +293,8 @@ class Camera:
 
                     bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0)
 
-                    
+                    [self.send_data(obj, names=names, frame=im0) for obj in track_data]
+
                     draw_boxes(im0, bbox_xyxy, track_data)
 
                 # Print time (inference + NMS)
