@@ -35,7 +35,7 @@ class Camera:
         self.source = "../video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
-        self.max_distance_between_points = 30
+        self.max_distance_between_points = 100
         self.ppm = 10
         self.fps = None
         self.mapping = self.initialize_mapping_model(model_path)
