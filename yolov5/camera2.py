@@ -20,18 +20,20 @@ from tracker import Tracker, Detection
 from dataObject import DataObject
 import json
 import queue
+import pickle
 
 IMG_SIZE = 2304, 1296
 
 class Camera:
 
-    def __init__(self, road_area=None):
+    def __init__(self, road_area=None, model_path=None):
         self.source = "../video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
         self.max_distance_between_points = 30
         self.ppm = 10
         self.fps = None
+        self.mapping = self.initialize_mapping_model(model_path)
         self.time_objects = {}  # Object JSON Data to be sent to celery regarding one timestamp
         self.q = queue.Queue()  # Queue of frames to be OCR
         self.old_ids = set()  # Old Deep Sort Object Ids -> maybe this can be cleaned up every x time
@@ -144,6 +146,17 @@ class Camera:
         return bbox_xyxy, track_data
     
 
+    def initialize_mapping_model(self, model_path = None):
+
+        if model_path:
+            with open(model_path, 'rb') as file:
+                pickle_model = pickle.load(file)
+
+        else:
+            with open("../sensor_fusion/ridge.pkl", 'rb') as file:
+                pickle_model = pickle.load(file)
+
+        return pickle_model
 
     def inside_road(self, x, y):
         """ check if object is inside road or not """
