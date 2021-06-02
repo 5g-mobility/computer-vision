@@ -22,6 +22,10 @@ import json
 import queue
 import pickle
 import pandas as pd
+import re
+from datetime import datetime
+from easyocr import Reader
+
 
 IMG_SIZE = 2304, 1296
 
@@ -107,7 +111,7 @@ class Camera:
 
         print(data)
 
-        #self.q.put((data, frame[50:125, 1725:2250]))
+        self.q.put((data, frame[50:125, 1725:2250]))
 
         #return data
 
@@ -177,6 +181,49 @@ class Camera:
             return True
 
         return False
+
+
+
+    def process_data(self):
+        """Processes time of the frame and, accordingly with the data, it will send """
+        while True:
+            json, image_time = self.q.get()
+            now = datetime.now()
+            time_from_image = Reader(['en']).readtext(image_time, detail=0)
+            res = re.findall("\d{2}", time_from_image[0])
+            try:
+                date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
+                                            "%Y %m %d %H %M %S")
+                if date.year != now.year:
+                    print("Bad Year processed, was: {}".format(date.year))
+                    date.year = now.year
+                if date.month != now.month:
+                    print("Bad Month processed, was: {}".format(date.month))
+                    date.month = now.month
+                if date.day != now.day:
+                    # Maybe it's better to check if the difference between the days is higher than two
+                    print("Bad Day processed, was: {}".format(date.day))
+                    date.day = now.day
+                if date.hour != now.hour:
+                    # Maybe it's better to check if the difference between the hours is higher than two
+                    print("Bad Hour processed, was: {}".format(date.hour))
+                    date.hour = now.hour
+
+                print(date)
+
+                json['date'] = date
+
+                if date not in self.time_objects:
+                    # Sending old datetime objects data
+                    for key in self.time_objects:
+                        for json in self.time_objects[key]:
+                            self.celery.send_data(json)
+                    self.time_objects[date] = [json]
+
+            except ValueError:
+                print("Error while parsing date")
+
+            self.q.task_done()
 
 
 

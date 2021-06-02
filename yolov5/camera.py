@@ -66,6 +66,7 @@ class Camera:
             pickle_model = pickle.load(file)
 
         return pickle_model
+    
 
     
     def process_tracking_data(self, tracked_objects, img, im0):
