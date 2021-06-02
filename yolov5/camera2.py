@@ -157,6 +157,15 @@ class Camera:
 
                         norfair_detections.append(Detection(bbox, np.array([conf, cls])))
 
+
+                tracked_objects = self.tracker.update(detections=norfair_detections)
+
+                if tracked_objects:
+                    
+
+                    print(len(tracked_objects))
+                    #draw_boxes(im0, bbox_xyxy, indetities)
+
                 # Print time (inference + NMS)
                 print(f'{s}Done. ({t2 - t1:.3f}s)')
 
