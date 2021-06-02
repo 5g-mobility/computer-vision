@@ -4,8 +4,6 @@ sys.path.insert(0, './yolov5')
 from yolov5.utils.datasets import LoadImages, LoadStreams
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords
 from yolov5.utils.torch_utils import select_device, time_synchronized
-from deep_sort_pytorch.utils.parser import get_config
-from deep_sort_pytorch.deep_sort import DeepSort
 import argparse
 import os
 import platform
@@ -74,13 +72,13 @@ def detect(opt, save_img=False):
 
 
     # initialize deepsort
-    cfg = get_config()
-    cfg.merge_from_file(opt.config_deepsort)
-    deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
-                        max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
-                        nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP, max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
-                        max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
-                        use_cuda=True)
+    # cfg = get_config()
+    # cfg.merge_from_file(opt.config_deepsort)
+    # deepsort = DeepSort(cfg.DEEPSORT.REID_CKPT,
+    #                     max_dist=cfg.DEEPSORT.MAX_DIST, min_confidence=cfg.DEEPSORT.MIN_CONFIDENCE,
+    #                     nms_max_overlap=cfg.DEEPSORT.NMS_MAX_OVERLAP, max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
+    #                     max_age=cfg.DEEPSORT.MAX_AGE, n_init=cfg.DEEPSORT.N_INIT, nn_budget=cfg.DEEPSORT.NN_BUDGET,
+    #                     use_cuda=True)
 
     # Initialize
     device = select_device(opt.device)
@@ -144,12 +142,12 @@ def detect(opt, save_img=False):
         t2 = time_synchronized()
 
 
-
+   
         # Process detections
         for i, det in enumerate(pred):  # detections per image
 
             #det - pytorch tensor (matriz)
-
+            print("\n pred", det)
 
 
             #det- detections
@@ -199,56 +197,56 @@ def detect(opt, save_img=False):
                 #im0 - imagem
 
                 # Pass detections to deepsort
-                outputs = deepsort.update(xywhs, confss, im0, classes)
+                #outputs = deepsort.update(xywhs, confss, im0, classes)
 
 
 
                 # draw boxes for visualization
-                if len(outputs) > 0:
-                    bbox_xyxy = outputs[:, :4]
-                    identities = outputs[:, -2]
-                    classes = outputs[:, -1]
+            #     if len(outputs) > 0:
+            #         bbox_xyxy = outputs[:, :4]
+            #         identities = outputs[:, -2]
+            #         classes = outputs[:, -1]
 
-                    #update last position
-                    for k, obj_id in enumerate(identities):
+            #         #update last position
+            #         for k, obj_id in enumerate(identities):
 
-                        if obj_id in last_positon and all([last_positon[obj_id][x] == bbox_xyxy[k][x] for x in range(0, 4)]):
-                            frames_stopped[obj_id] += 1
+            #             if obj_id in last_positon and all([last_positon[obj_id][x] == bbox_xyxy[k][x] for x in range(0, 4)]):
+            #                 frames_stopped[obj_id] += 1
 
-                        else:
-                            frames_stopped[obj_id] = 1
+            #             else:
+            #                 frames_stopped[obj_id] = 1
 
-                        last_positon[obj_id] = bbox_xyxy[k]
+            #             last_positon[obj_id] = bbox_xyxy[k]
 
 
-                    #im0 - image id
-                    #bbox_xyxy - bounding boxes
+            #         #im0 - image id
+            #         #bbox_xyxy - bounding boxes
 
-                    draw_boxes(im0, bbox_xyxy, [names[int(c)] for c in classes] , identities)
+            #         draw_boxes(im0, bbox_xyxy, [names[int(c)] for c in classes] , identities)
                 
-                # Write MOT compliant results to file
-                if save_txt and len(outputs) != 0:
-                    for j, output in enumerate(outputs):
+            #     # Write MOT compliant results to file
+            #     if save_txt and len(outputs) != 0:
+            #         for j, output in enumerate(outputs):
 
-                        bbox_left = output[0]
-                        bbox_top = output[1]
-                        bbox_w = output[2]
-                        bbox_h = output[3]
+            #             bbox_left = output[0]
+            #             bbox_top = output[1]
+            #             bbox_w = output[2]
+            #             bbox_h = output[3]
 
-                        #id
-                        identity = output[-2]
-                        c = output[-1]
+            #             #id
+            #             identity = output[-2]
+            #             c = output[-1]
 
-                        json_data = send_data(output, names, frames_stopped)
+            #             json_data = send_data(output, names, frames_stopped)
 
-                        print(json_data)
+            #             print(json_data)
 
-                        #with open(txt_path, 'a') as f:
-                        #    f.write(('%g ' * 10 + '\n') % (frame_idx, identity, bbox_left,
-                        #                                   bbox_top, bbox_w, bbox_h, names[int(c)], -1, -1, -1))  # label format
+            #             #with open(txt_path, 'a') as f:
+            #             #    f.write(('%g ' * 10 + '\n') % (frame_idx, identity, bbox_left,
+            #             #                                   bbox_top, bbox_w, bbox_h, names[int(c)], -1, -1, -1))  # label format
 
-            else:
-                deepsort.increment_ages()
+            # else:
+            #     deepsort.increment_ages()
 
             # Print time (inference + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))
