@@ -8,6 +8,7 @@ class RiaAtiva(Camera):
         road_area = ([(895.4, 162.5), (1002, 1296), (2165, 1296), (939.1, 162.5)],
                           [(1762, 810), (2165, 1296), (2304, 1296), (2304, 984)])
         self.celery = celery
+        model = "../sensor_fusion/ponte.pkl"
         super().__init__(road_area)
 
 
