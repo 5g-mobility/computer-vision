@@ -10,10 +10,14 @@ from utils.general import set_logging, check_img_size, check_imshow, non_max_sup
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 import torch.backends.cudnn as cudnn
+import numpy as np
 from numpy import random
 import time
 from utils.plots import plot_one_box, color_list
 import cv2
+import matplotlib.path as mpltPath
+from tracker import Tracker, Detection
+
 
 IMG_SIZE = 2304, 1296
 
@@ -22,9 +26,15 @@ class Camera:
     def __init__(self, road_area=None):
         self.source = "../video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
+        self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
+        self.max_distance_between_points = 30
         self.ppm = 10
         self.fps = None
+        self.tracker = Tracker(
 
+        distance_function= self.euclidean_distance,
+        distance_threshold= self.max_distance_between_points,
+    )
     
 
     def estimateSpeed(self, location1, location2):
@@ -41,7 +51,8 @@ class Camera:
         speed = d_meters * self.fps * 3.6
         return speed
 	
-
+    def euclidean_distance(self, detection, tracked_object):
+        return np.linalg.norm(detection.points - tracked_object.estimate)
 
     def detect(self, opt, save_img=False):
         source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
@@ -106,6 +117,9 @@ class Camera:
             if classify:
                 pred = apply_classifier(pred, modelc, img, im0s)
 
+
+            norfair_detections = []
+
             # Process detections
             for i, det in enumerate(pred):  # detections per image
                 if webcam:  # batch_size >= 1
@@ -120,7 +134,7 @@ class Camera:
                 gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if len(det):
                     # Rescale boxes from img_size to im0 size
-                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                    #det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
                     # Print results
                     for c in det[:, -1].unique():
@@ -135,10 +149,13 @@ class Camera:
                             line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
                             with open(txt_path + '.txt', 'a') as f:
                                 f.write(('%g ' * len(line)).rstrip() % line + '\n')
+                        
+                        bbox = np.array([
+                        [xyxy[0].item(), xyxy[1].item()],
+                        [xyxy[2].item(), xyxy[3].item()] ])
 
-                        if save_img or view_img:  # Add bbox to image
-                            label = f'{names[int(cls)]} {conf:.2f}'
-                            plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
+
+                        norfair_detections.append(Detection(bbox, np.array([conf, cls])))
 
                 # Print time (inference + NMS)
                 print(f'{s}Done. ({t2 - t1:.3f}s)')
