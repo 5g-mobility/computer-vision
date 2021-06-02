@@ -38,12 +38,17 @@ if __name__ == '__main__':
     if opt.cam == 'riaAtiva':
         location = RiaAtiva(celery_instance)
         opt.weights = './yolov5/weights/best-riaAtiva.pt'
+        opt.source = 'rtsp://pei:5g-mobix@10.0.19.201:554'
+        
     elif opt.cam == 'ponteBarra':
         location = PraiaBarra(celery_instance)
         opt.weights = './yolov5/weights/best-ponte.pt'
+        opt.source = 'rtsp://pei:5g-mobix@10.0.19.203:554'
+
     elif opt.cam == 'dunas':
         location = Dunas(celery_instance)
         opt.weights = './yolov5/weights/best-duna.pt'
+        opt.source = 'rtsp://pei:5g-mobix@10.0.19.202:554'
 
     with torch.no_grad():
         location.detect(opt)
