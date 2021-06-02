@@ -88,6 +88,8 @@ class Camera:
         bbox_h = obj.xyxy[3]
         # id
 
+
+        # TODO: corrigir isto 
         center_x, center_y = box_center(obj.xyxy)
 
         # bike
@@ -95,7 +97,12 @@ class Camera:
             obj.cls = len(names) - 1
             
         # TODO : falta normalizar os dados
-        lat, lon = self.mapping.predict(np.asarray([obj.xyxy[0:2]])).tolist()[0]
+
+        xywh = (xyxy2xywh(torch.tensor(obj.xyxy).view(1, 4)) / gn).view(-1).tolist() 
+        
+        print(xywh)
+
+        lat, lon = self.mapping.predict(np.asarray([xywh[0:2]])).tolist()[0]
 
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
@@ -103,7 +110,7 @@ class Camera:
 
         data = json.dumps({"class": names[int(obj.cls)],"lat": lat,
         "long": lon, "speed": obj.velocity
-                           , "id": id})
+                           ,"id": id})
 
         print(data)
 
@@ -132,7 +139,7 @@ class Camera:
             xywh = xyxy2xywh_no_tensor(bbox)
 
             track_data.append(
-                DataObject(obj.id, xywh, obj.last_detection.scores[1], 
+                DataObject(obj.id, bbox, obj.last_detection.scores[1], 
                 obj.last_detection.scores[1], 
                 self.estimateSpeed(xywh, xyxy2xywh_no_tensor(last_xyxy) )))
 
@@ -141,8 +148,6 @@ class Camera:
         bbox_xyxy = scale_coords(
         img.shape[2:], torch.tensor(bbox_xyxy), im0.shape).round()
     
-
-        bbox_xywh = xyxy2xywh(bbox_xyxy)
 
         return bbox_xyxy, track_data
     
