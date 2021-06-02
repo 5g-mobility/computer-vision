@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 from utils.general import increment_path
 from utils.torch_utils import select_device, time_synchronized, load_classifier
-from utils.general import set_logging, check_img_size, check_imshow, non_max_suppression, apply_classifier, scale_coords, xyxy2xywh, save_one_box
+from utils.general import set_logging, check_img_size, non_max_suppression, apply_classifier, scale_coords, xyxy2xywh, scale_coord, xyxy2xywh_no_tensor
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 import torch.backends.cudnn as cudnn
@@ -17,7 +17,7 @@ from utils.plots import plot_one_box, color_list
 import cv2
 import matplotlib.path as mpltPath
 from tracker import Tracker, Detection
-
+from dataObject import DataObject
 
 IMG_SIZE = 2304, 1296
 
@@ -51,6 +51,53 @@ class Camera:
         speed = d_meters * self.fps * 3.6
         return speed
 	
+
+
+
+    def process_tracking_data(self, tracked_objects, img, im0):
+        
+        bbox = []
+        bbox_xyxy = []
+        track_data = []
+        
+        for obj in tracked_objects:
+
+            if obj.previous_detection:
+
+                last_xyxy = [y  for b in obj.previous_detection.points.tolist() for y in b]            
+
+            for box in obj.last_detection.points.tolist():
+                for x in box:
+                    bbox.append(x)
+
+            bbox_xyxy.append(bbox)
+            print(bbox)
+
+            xywh = xyxy2xywh_no_tensor(bbox)
+
+            track_data.append(
+                DataObject(xywh, obj.last_detection.scores[0], 
+                obj.last_detection.scores[1], 
+                self.estimateSpeed(xywh, xyxy2xywh_no_tensor(last_xyxy) )))
+
+            bbox = []
+            
+        
+
+
+
+        #print(torch.tensor(bbox_xyxy))
+        bbox_xyxy = scale_coord(
+        img.shape[2:], torch.tensor(bbox_xyxy), im0.shape).round()
+    
+        # objects_detection = [obj.last_detection.points.tolist() for obj in tracked_objects]
+        # bbox_xyxy = [obj for x in objects_detection.points for obj in x ]
+        identities = [obj.id for obj in tracked_objects]
+
+        bbox_xywh = xyxy2xywh(bbox_xyxy)
+
+        return bbox_xyxy, identities, track_data
+
     def euclidean_distance(self, detection, tracked_object):
         return np.linalg.norm(detection.points - tracked_object.estimate)
 
@@ -89,6 +136,14 @@ class Camera:
         else:
             save_img = True
             dataset = LoadImages(source, img_size=imgsz)
+
+
+        self.fps = dataset.fps
+
+        print(self.fps)
+
+        return
+
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
@@ -161,9 +216,10 @@ class Camera:
                 tracked_objects = self.tracker.update(detections=norfair_detections)
 
                 if tracked_objects:
-                    
 
-                    print(len(tracked_objects))
+                    bbox_xyxy,identities, track_data =  self.process_tracking_data(tracked_objects, img, im0)
+
+                    print(len(bbox_xyxy))
                     #draw_boxes(im0, bbox_xyxy, indetities)
 
                 # Print time (inference + NMS)
