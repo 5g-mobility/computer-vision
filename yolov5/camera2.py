@@ -142,7 +142,7 @@ class Camera:
 
         print(self.fps)
 
-        return
+        
 
 
         # Get names and colors
@@ -219,7 +219,7 @@ class Camera:
 
                     bbox_xyxy,identities, track_data =  self.process_tracking_data(tracked_objects, img, im0)
 
-                    print(len(bbox_xyxy))
+                    print(track_data)
                     #draw_boxes(im0, bbox_xyxy, indetities)
 
                 # Print time (inference + NMS)
