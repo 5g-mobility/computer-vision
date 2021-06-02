@@ -80,9 +80,8 @@ class Camera:
         bbox_w = obj.xyxy[2]
         bbox_h = obj.xyxy[3]
         # id
-        print(obj.xyxy)
 
-        return
+        
         center_x, center_y = box_center(obj.xyxy)
         # bike
         if obj.cls == 1 and self.isMotocycle(center_x, center_y):
@@ -93,6 +92,9 @@ class Camera:
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
+
+        print(obj.cls)
+
         data = json.dumps({"class": names[int(obj.cls)],"lat": lat,
         "long": lon, "speed": obj.velocity
                            , "id": id})
@@ -124,7 +126,7 @@ class Camera:
             xywh = xyxy2xywh_no_tensor(bbox)
 
             track_data.append(
-                DataObject(obj.id, xywh, obj.last_detection.scores[0], 
+                DataObject(obj.id, xywh, obj.last_detection.scores[1], 
                 obj.last_detection.scores[1], 
                 self.estimateSpeed(xywh, xyxy2xywh_no_tensor(last_xyxy) )))
 

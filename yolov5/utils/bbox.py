@@ -3,7 +3,7 @@ import cv2
 
 
 
-def box_center(*xyxy):
+def box_center(xyxy):
     """ calculate bbox center based xy points """
 
     x1, y1, x2, y2 = xyxy
