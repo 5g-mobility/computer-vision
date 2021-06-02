@@ -1,11 +1,12 @@
 import cv2
+import sys
+sys.path.insert(0, './yolov5')
 import argparse
-from dunas import Dunas
-from praiaBarra import PraiaBarra
-from riaAtiva import RiaAtiva
+from yolov5.dunas import Dunas
+from yolov5.praiaBarra import PraiaBarra
+from yolov5.riaAtiva import RiaAtiva
 import torch
-from tasks import CeleryTasks
-
+from yolov5.tasks import CeleryTasks
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
