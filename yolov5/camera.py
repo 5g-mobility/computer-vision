@@ -93,8 +93,10 @@ class Camera:
         # TODO: corrigir isto 
         center_x, center_y = box_center(obj.xyxy)
 
+        is_inside = self.inside_road(center_x, center_y)
+
         # bike
-        if obj.cls == 1 and self.isMotocycle(center_x, center_y):
+        if obj.cls == 1 and self.isMotocycle(is_inside):
             obj.cls = len(names) - 1
             
         # TODO : falta normalizar os dados
@@ -109,9 +111,7 @@ class Camera:
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
 
-        data = json.dumps({"class": names[int(obj.cls)],"lat": lat,
-        "long": lon, "speed": obj.velocity
-                           ,"id": id})
+        data = json.dumps({"id": id, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside })
 
         print(data)
 
@@ -172,14 +172,14 @@ class Camera:
 
 
 
-    def isMotocycle(self, center_x, center_y):
+    def isMotocycle(self, is_inside):
         """ check if detected object is an motocycle
 
             if ouside of road - cyclist
             else - motocycle
         """
 
-        if (self.inside_road(center_x, center_y)):
+        if (is_inside):
             return True
 
         return False
