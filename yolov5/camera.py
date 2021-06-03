@@ -35,7 +35,7 @@ class Camera:
         self.source = "../video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
-        self.max_distance_between_points = 100
+        self.max_distance_between_points = 70
         self.ppm = 10
         self.fps = None
         self.mapping = self.initialize_mapping_model(model_path)
@@ -46,6 +46,7 @@ class Camera:
 
         distance_function= self.euclidean_distance,
         distance_threshold= self.max_distance_between_points,
+        initialization_delay = 2
     )
     
 
@@ -229,7 +230,7 @@ class Camera:
 
 
     def euclidean_distance(self, detection, tracked_object):
-        return np.linalg.norm(detection.points - tracked_object.estimate)
+        return np.linalg.norm(detection.points[0:2] - tracked_object.estimate[0:2])
 
 
 
