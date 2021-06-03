@@ -8,8 +8,8 @@ class RiaAtiva(Camera):
         road_area = ([(895.4, 162.5), (1002, 1296), (2165, 1296), (939.1, 162.5)],
                           [(1762, 810), (2165, 1296), (2304, 1296), (2304, 984)])
         self.celery = celery
-        model = "../sensor_fusion/ponte.pkl"
-        super().__init__(road_area)
+        model = "../sensor_fusion/ria.pkl"
+        super().__init__(road_area, model)
 
 
 if __name__ == '__main__':
@@ -35,6 +35,10 @@ if __name__ == '__main__':
     celery = CeleryTasks()
 
     ria =  RiaAtiva(celery)
+
+    # print(ria.inside_road(964, 795))
+    # print(ria.inside_road(1351, 793))
+    # print(ria.inside_road(709, 155))
 
     with torch.no_grad():
         ria.detect(opt)
