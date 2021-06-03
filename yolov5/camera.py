@@ -111,7 +111,7 @@ class Camera:
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
 
-        data = json.dumps({"id": id, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside })
+        data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside })
 
         print(data)
 
