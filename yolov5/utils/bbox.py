@@ -47,3 +47,10 @@ def draw_boxes(img, bbox, track_objects, offset=(0, 0)):
         cv2.putText(img, label, (x1, y1 +
                                 t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
     return img
+
+
+def resize(img, img_size):
+
+    " resize image to x, y dimensions"
+
+    return cv2.resize(img, img_size)

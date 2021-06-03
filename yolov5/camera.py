@@ -1,7 +1,7 @@
 
 import math
 import torch
-from utils.bbox import box_center, draw_boxes, compute_color_for_labels
+from utils.bbox import box_center, draw_boxes
 import argparse
 from pathlib import Path
 from utils.general import increment_path
@@ -34,7 +34,8 @@ class Camera:
     def __init__(self, road_area=None, model_path=None):
         self.source = "../video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
-        self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
+    
+        self.is_road_scale = False
         self.max_distance_between_points = 70
         self.ppm = 10
         self.fps = None
@@ -89,9 +90,19 @@ class Camera:
         bbox_h = obj.xyxy[3]
         # id
 
+        # TODO : falta normalizar os dados
 
-        # TODO: corrigir isto 
-        center_x, center_y = box_center(obj.xyxy)
+        
+
+        #center_x, center_y = box_center(obj.xyxy)
+
+        print(obj.xyxy)
+
+        xywh = xyxy2xywh(obj.xyxy.view(1, 4)).view(-1)
+        
+        print(xywh)
+
+        center_x, center_y = xywh.tolist()[:2]
 
         is_inside = self.inside_road(center_x, center_y)
 
@@ -99,13 +110,10 @@ class Camera:
         if obj.cls == 1 and self.isMotocycle(is_inside):
             obj.cls = len(names) - 1
             
-        # TODO : falta normalizar os dados
-
-        xywh = (xyxy2xywh(torch.tensor(obj.xyxy).view(1, 4)) / gn).view(-1).tolist() 
         
-        print(xywh)
+        xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
 
-        lat, lon = self.mapping.predict(np.asarray([xywh[0:2]])).tolist()[0]
+        lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
 
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
@@ -121,35 +129,37 @@ class Camera:
 
     def process_tracking_data(self, tracked_objects, img, im0):
         
-        bbox = []
         bbox_xyxy = []
         track_data = []
-        
+        idx = []
+        scores = []
+        last_xyxy = []
+
+
         for obj in tracked_objects:
 
             if obj.previous_detection:
 
-                last_xyxy = [y  for b in obj.previous_detection.points.tolist() for y in b]            
+                last_xyxy.append([y  for b in obj.previous_detection.points.tolist() for y in b] )           
 
-            for box in obj.last_detection.points.tolist():
-                for x in box:
-                    bbox.append(x)
+            bbox_xyxy.append([x for box in obj.last_detection.points.tolist() for x in box])
 
-            bbox_xyxy.append(bbox)
+            scores.append(obj.last_detection.scores)
 
-            xywh = xyxy2xywh_no_tensor(bbox)
+            idx.append(obj.id)
 
-            track_data.append(
-                DataObject(obj.id, bbox, obj.last_detection.scores[1], 
-                obj.last_detection.scores[1], 
-                self.estimateSpeed(xywh, xyxy2xywh_no_tensor(last_xyxy) )))
 
-            bbox = []
-            
         bbox_xyxy = scale_coords(
         img.shape[2:], torch.tensor(bbox_xyxy), im0.shape).round()
-    
 
+        for i, box in enumerate(bbox_xyxy):
+        
+            track_data.append(
+                
+            DataObject(idx[i], box, scores[i][1], scores[i][1], 
+                self.estimateSpeed(box, xyxy2xywh_no_tensor(last_xyxy[i]) )))
+    
+    
         return bbox_xyxy, track_data
     
 
@@ -183,6 +193,16 @@ class Camera:
             return True
 
         return False
+
+    def rescale_coords(self,point, img):
+        x, y = point
+        img_y, img_x = img.shape[:2]
+        n_img_x,n_img_y = IMG_SIZE
+
+        return x * (img_x/n_img_x), y * (img_y/n_img_y)
+
+
+
 
 
 
@@ -260,6 +280,8 @@ class Camera:
             modelc = load_classifier(name='resnet101', n=2)  # initialize
             modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
 
+            
+
         # Set Dataloader
         vid_path, vid_writer = None, None
         if webcam:
@@ -285,6 +307,14 @@ class Camera:
         old_im0s = np.array([], [])
 
         for path, img, im0s, vid_cap in dataset:
+            #im0s -  imagem original
+            # img - imagem resize
+
+            if not self.is_road_scale:
+
+                self.road_area = [ [ self.rescale_coords(point,  im0s) for point in area ] for area in self.road_area ]                
+                self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
+                self.is_road_scale = True
 
             if np.array_equal(im0s, old_im0s):
                 time.sleep(0.01)
