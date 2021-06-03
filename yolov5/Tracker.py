@@ -54,44 +54,31 @@ class Tracker:
         TrackedObject.count = 0
 
     def update(self, detections, period = 1):
-        
-        
 
         self.period = period
 
-        #print("detections ", detections)
-        #print("tracked_objects ", self.tracked_objects )
         # Remove stale trackers and make candidate object real if it has hit inertia
-        #if self.tracked_objects != []:
-            #print("hit_counter ", self.tracked_objects[0].hit_counter)
-            #print("last_track_detection ", self.tracked_objects[0].last_track_detection)
 
-            #return
         self.tracked_objects = [o for o in self.tracked_objects if o.hit_counter > o.last_track_detection - 1]
 
-
-        #print("tracked_objects 2 ", self.tracked_objects )
 
 
         # Update tracker
         for obj in self.tracked_objects:
             obj.tracker_step()
 
-        #print("tracked_objects 3 ", self.tracked_objects )
-
         # Update initialized tracked objects with detections
         unmatched_detections = self.update_objects_in_place(
             [o for o in self.tracked_objects if not o.is_initializing], detections
         )
-        
-        #print("unmatched_detections 1 ", unmatched_detections )
+
 
         # Update not yet initialized tracked objects with yet unmatched detections
         unmatched_detections = self.update_objects_in_place(
             [o for o in self.tracked_objects if o.is_initializing], unmatched_detections
         )
         
-        #print("unmatched_detections 2 ", unmatched_detections )
+
 
         # Create new tracked objects from remaining unmatched detections
         for detection in unmatched_detections:
@@ -106,8 +93,6 @@ class Tracker:
                     self.point_transience,
                 )
             )
-
-        #print("udpate")
 
         return [p for p in self.tracked_objects if not p.is_initializing]
 

@@ -1,11 +1,12 @@
 import cv2
+import sys
+sys.path.insert(0, './yolov5')
 import argparse
-from dunas import Dunas
-from praiaBarra import PraiaBarra
-from riaAtiva import RiaAtiva
+from yolov5.dunas import Dunas
+from yolov5.praiaBarra import PraiaBarra
+from yolov5.riaAtiva import RiaAtiva
 import torch
-from tasks import CeleryTasks
-
+from yolov5.tasks import CeleryTasks
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
@@ -37,12 +38,17 @@ if __name__ == '__main__':
     if opt.cam == 'riaAtiva':
         location = RiaAtiva(celery_instance)
         opt.weights = './yolov5/weights/best-riaAtiva.pt'
+        opt.source = 'rtsp://pei:5g-mobix@10.0.19.201:554'
+        
     elif opt.cam == 'ponteBarra':
         location = PraiaBarra(celery_instance)
         opt.weights = './yolov5/weights/best-ponte.pt'
+        opt.source = 'rtsp://pei:5g-mobix@10.0.19.203:554'
+
     elif opt.cam == 'dunas':
         location = Dunas(celery_instance)
         opt.weights = './yolov5/weights/best-duna.pt'
+        opt.source = 'rtsp://pei:5g-mobix@10.0.19.202:554'
 
     with torch.no_grad():
         location.detect(opt)

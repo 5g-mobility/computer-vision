@@ -5,12 +5,12 @@ from pathlib import Path
 import os
 
 from torch.functional import Tensor
-from Tracker import Detection
+from tracker import Detection, Tracker
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
-
+import math
 import json
 
 import numpy as np
@@ -60,8 +60,7 @@ def send_data(*xyxy, c, names, path):
                         "box_left": int(bbox_left), "box_top": int(bbox_top),
                         "box_w": int(bbox_w), "box_h": int(bbox_h), "inside": inside_road(path, center_x, center_y)})
 
-from Tracker import Tracker
-import math
+
 
 palette = (2 ** 11 - 1, 2 ** 15 - 1, 2 ** 20 - 1)
 

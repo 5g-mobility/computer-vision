@@ -265,7 +265,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         self.img_size = img_size
         self.stride = stride
 
-        self.pid = pid
+        #self.pid = pid
         self.cap = None
         self.s = None
 
@@ -289,10 +289,10 @@ class LoadStreams:  # multiple IP or RTSP cameras
             assert cap.isOpened(), f'Failed to open {s}'
             w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            fps = cap.get(cv2.CAP_PROP_FPS) % 100
+            self.fps = cap.get(cv2.CAP_PROP_FPS) % 100
             _, self.imgs[i] = cap.read()  # guarantee first frame
             thread = Thread(target=self.update, args=([i, cap, eval(s) if s.isnumeric() else s]), daemon=True)
-            print(f' success ({w}x{h} at {fps:.2f} FPS).')
+            print(f' success ({w}x{h} at {self.fps:.2f} FPS).')
             thread.start()
         print('')  # newline
 
