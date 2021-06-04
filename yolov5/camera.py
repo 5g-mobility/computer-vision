@@ -113,8 +113,11 @@ class Camera:
 
         # bike
         if obj.cls == 1 and self.isMotocycle(is_inside):
+
             obj.cls = len(names) - 1
-            
+        
+
+
         
         xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
 
@@ -328,11 +331,11 @@ class Camera:
             # img - imagem resize
 
             if not self.is_road_scale:
-
+                im = im0s
                 if stream:
-                    im0s = im0s[0]
+                    im = im0s[0]
 
-                self.road_area = [ [ self.rescale_coords(point,  im0s) for point in area ] for area in self.road_area ]                
+                self.road_area = [ [ self.rescale_coords(point,  im) for point in area ] for area in self.road_area ]                
                 self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
                 self.is_road_scale = True
 
