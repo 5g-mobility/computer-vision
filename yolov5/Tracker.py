@@ -250,6 +250,7 @@ class TrackedObject:
         self.setup_filter(initial_detection.points)
         self.detected_at_least_once_points = np.array([False] * self.num_points)
         self.previous_detection = None
+        self.n_stop = 0
 
     def setup_filter(self, initial_detection: np.array):
         initial_detection = validate_points(initial_detection)
@@ -367,6 +368,18 @@ class TrackedObject:
         self.detected_at_least_once_points = np.logical_or(
             self.detected_at_least_once_points, points_over_threshold_mask
         )
+        # print("tracker")
+        # print(self.last_detection.points)
+        # print("-----------------------------")
+        # print(self.previous_detection.points)
+
+
+        print()
+        if np.linalg.norm(self.last_detection.points - self.previous_detection.points) < 0.5:
+            self.n_stop +=1
+
+        else:
+            self.n_stop = 0
 
     def __repr__(self):
         if self.last_distance is None:

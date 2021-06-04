@@ -115,11 +115,16 @@ class Camera:
 
         lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
 
+        if obj.n_stop > 2:
+            data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True})
+        else:
+            data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False})
+
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
 
-        data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside })
+            
 
         print(data)
 
@@ -134,6 +139,7 @@ class Camera:
         idx = []
         scores = []
         last_xyxy = []
+        n_stops = []
 
 
         for obj in tracked_objects:
@@ -147,6 +153,8 @@ class Camera:
             scores.append(obj.last_detection.scores)
 
             idx.append(obj.id)
+            print("\n #########", obj.n_stop)
+            n_stops.append( obj.n_stop)
 
 
         bbox_xyxy = scale_coords(
@@ -156,7 +164,7 @@ class Camera:
         
             track_data.append(
                 
-            DataObject(idx[i], box, scores[i][1], scores[i][1], 
+            DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i], 
                 self.estimateSpeed(box, xyxy2xywh_no_tensor(last_xyxy[i]) )))
     
     
@@ -377,6 +385,8 @@ class Camera:
                         bbox = np.array([
                         [xyxy[0].item(), xyxy[1].item()],
                         [xyxy[2].item(), xyxy[3].item()] ])
+                        print("yolo")
+                        print("\n############",  bbox)
 
 
                         norfair_detections.append(Detection(bbox, np.array([conf, cls])))
