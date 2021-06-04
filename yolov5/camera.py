@@ -118,7 +118,8 @@ class Camera:
         
         xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
 
-        lat, lon =self.calibrate_geoCoods(self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
+        #lat, lon =self.calibrate_geoCoods( (center_x, center_y ), self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
+        lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
 
         if obj.n_stop > 2:
             data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True})
@@ -272,6 +273,7 @@ class Camera:
         webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
             ('rtsp://', 'rtmp://', 'http://'))
 
+        stream = False
         # Directories
         save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
         (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
@@ -301,6 +303,8 @@ class Camera:
             view_img = True
             cudnn.benchmark = True  # set True to speed up constant image size inference
             dataset = LoadStreams(source, img_size=imgsz)
+            stream = True
+
         else:
             save_img = True
             dataset = LoadImages(source, img_size=imgsz)
@@ -324,6 +328,9 @@ class Camera:
             # img - imagem resize
 
             if not self.is_road_scale:
+
+                if stream:
+                    im0s = im0s[0]
 
                 self.road_area = [ [ self.rescale_coords(point,  im0s) for point in area ] for area in self.road_area ]                
                 self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
