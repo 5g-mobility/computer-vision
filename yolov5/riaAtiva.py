@@ -8,9 +8,11 @@ class RiaAtiva(Camera):
 
         road_area = [ [(895, 194), (1002, 1296), (2288, 1296), (988, 194)],
                           [(1762, 810), (2165, 1296), (2304, 1296), (2304, 984)] ]
+        detect_area = [([1406, 388], [627, 282]),([1237, 312],[661, 254])]
+        detect_dist = 7.06
         self.celery = celery
         model = "../sensor_fusion/ria.pkl"
-        super().__init__(road_area, model)
+        super().__init__(road_area, model, detect_area, detect_dist)
 
 
         # def rescale_coords(self,point, img):

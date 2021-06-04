@@ -189,7 +189,11 @@ class LoadImages:  # for inference
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
 
-        return path, img, img0, self.cap
+        return path, img, img0, self.cap, None
+
+    @property
+    def time_mili(self):
+        return self.cap.get(cv2.CAP_PROP_POS_MSEC)
 
     def new_video(self, path):
         self.frame = 0
@@ -280,7 +284,10 @@ class LoadStreams:  # multiple IP or RTSP cameras
             sources = [sources]
 
         n = len(sources)
+
+   
         self.imgs = [None] * n
+        self.times = [None] * n
         self.sources = [clean_str(x) for x in sources]  # clean source names for later
         for i, s in enumerate(sources):
             # Start the thread to read frames from the video stream
@@ -317,9 +324,16 @@ class LoadStreams:  # multiple IP or RTSP cameras
                 success, im = cap.read()
                 if not success:
                     cap = self.connect_to_cam(url)
+               
+                self.times = self.time_mili(cap)
                 self.imgs[index] = im if success else self.imgs[index] * 0
                 n = 0
+                
             time.sleep(0.01)  # wait time
+
+
+    def time_mili(self, cap):
+        return cap.get(cv2.CAP_PROP_POS_MSEC)
 
     def __iter__(self):
         self.count = -1
@@ -342,7 +356,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
         img = img[:, :, :, ::-1].transpose(0, 3, 1, 2)  # BGR to RGB, to bsx3x416x416
         img = np.ascontiguousarray(img)
 
-        return self.sources, img, img0, None
+        return self.sources, img, img0,None,  self.times
 
     def __len__(self):
         return 0  # 1E12 frames = 32 streams at 30 FPS for 30 years

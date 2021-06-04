@@ -4,7 +4,7 @@ import matplotlib.path as mpltPath
 
 import numpy as np
 
-image = cv2.imread('./frame4.jpg')
+image = cv2.imread('./frame3.jpg')
 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
@@ -31,11 +31,11 @@ print("cols ", cols) # x - 2304
 
 #(107,860) (0,0) (0, 872) (642, 1296)
 
-top_left = [1229.5, 571.6]
+top_left = [627, 282]
 
-bottom_left = [107, 796]
-bottom_right = [642, 1296]
-top_right = [1411.5, 571.6] 
+bottom_left = [1406, 388]
+bottom_right = [1237, 312]
+top_right = [661, 254] 
 
 # dunas - polygon = [(828, 287),(1345, 1294),(2130, 1294),(957, 287)]
 

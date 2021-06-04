@@ -236,6 +236,8 @@ class TrackedObject:
         self.point_hit_counter: np.ndarray = (
             np.ones(self.num_points) * self.point_hit_inertia_min
         )
+        self.cross_line = False
+        self.init_time =  None
         self.last_distance: Optional[float] = None
         self.current_min_distance: Optional[float] = None
         self.last_detection: "Detection" = initial_detection
