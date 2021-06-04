@@ -374,12 +374,21 @@ class TrackedObject:
         # print(self.previous_detection.points)
 
 
+        # TODO: colocar linha y, que o carro passando aumenta a dist em 0.2
+
+        dist = np.linalg.norm(self.last_detection.points - self.previous_detection.points)
+
+        
+
         print()
-        if np.linalg.norm(self.last_detection.points - self.previous_detection.points) < 0.5:
+        if  dist < 0.5:
             self.n_stop +=1
 
         else:
             self.n_stop = 0
+
+    
+
 
     def __repr__(self):
         if self.last_distance is None:

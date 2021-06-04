@@ -31,10 +31,10 @@ IMG_SIZE = 2304, 1296
 
 class Camera:
 
-    def __init__(self, road_area=None, model_path=None):
+    def __init__(self, road_area=None, model_path=None, delta_geo=None):
         self.source = "../video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
-    
+        self.delta_geo = delta_geo # geo coords treshhold
         self.is_road_scale = False
         self.max_distance_between_points = 70
         self.ppm = 10
@@ -64,6 +64,12 @@ class Camera:
 
         speed = d_meters * self.fps * 3.6
         return speed
+
+    def calibrate_geoCoods(self, coords):
+
+        lat, lon =  coords
+
+        return lat, lon
 	
     def send_data(self, obj, names, frame, gn):
         """
@@ -96,11 +102,10 @@ class Camera:
 
         #center_x, center_y = box_center(obj.xyxy)
 
-        print(obj.xyxy)
 
         xywh = xyxy2xywh(obj.xyxy.view(1, 4)).view(-1)
         
-        print(xywh)
+
 
         center_x, center_y = xywh.tolist()[:2]
 
@@ -113,7 +118,7 @@ class Camera:
         
         xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
 
-        lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
+        lat, lon =self.calibrate_geoCoods(self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
 
         if obj.n_stop > 2:
             data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True})
@@ -153,7 +158,7 @@ class Camera:
             scores.append(obj.last_detection.scores)
 
             idx.append(obj.id)
-            print("\n #########", obj.n_stop)
+
             n_stops.append( obj.n_stop)
 
 
@@ -385,8 +390,7 @@ class Camera:
                         bbox = np.array([
                         [xyxy[0].item(), xyxy[1].item()],
                         [xyxy[2].item(), xyxy[3].item()] ])
-                        print("yolo")
-                        print("\n############",  bbox)
+
 
 
                         norfair_detections.append(Detection(bbox, np.array([conf, cls])))
