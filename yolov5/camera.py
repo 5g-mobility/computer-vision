@@ -390,6 +390,7 @@ class Camera:
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
+        names.append('motocycle')
         colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
         # Run inference
@@ -492,6 +493,7 @@ class Camera:
 
                     bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
 
+                    
                     for obj in track_data:
                         if obj.velocity or (obj.cls == 0  and obj.frame is not None ):
                             self.send_data(obj, names=names, gn=gn)
