@@ -52,6 +52,7 @@ class Camera:
         distance_threshold= self.max_distance_between_points,
         initialization_delay = 2
     )
+        self.reader = Reader(['en'])
         threading.Thread(target=self.process_data, daemon=True).start()
 
     def estimateSpeed(self, time):
@@ -131,7 +132,9 @@ class Camera:
         # Dps fala comigo Miguel, ass Hugo
             
 
-        print(data)
+        # print(data)
+
+        #print(data)
 
         self.q.put((data, obj.frame[50:125, 1725:2250]))
 
@@ -183,7 +186,7 @@ class Camera:
             elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
                 
 
-                print("AKI CARALHO")
+                # print("AKI CARALHO")
 
                 speed = self.estimateSpeed(times - tracked_objects[i].init_time)
 
@@ -253,10 +256,13 @@ class Camera:
 
     def process_data(self):
         """Processes time of the frame and, accordingly with the data, it will send """
+
+        count = 0
         while True:
+            print("count ", count)
             json, image_time = self.q.get()
             now = datetime.now()
-            time_from_image = Reader(['en']).readtext(image_time, detail=0)
+            time_from_image = self.reader.readtext(image_time, detail=0)
             res = re.findall("\d{2}", time_from_image[0])
             try:
                 date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
@@ -280,20 +286,35 @@ class Camera:
 
                 json['date'] = date
 
+                
+
                 if date not in self.time_objects:
+
+                    del_keys = []
                     # Sending old datetime objects data
                     for key in self.time_objects:
-                        for json in self.time_objects[key]:
-                            print(json)
-                            
-                            
-                            #self.celery.send_data(json)
+            
+                        self.celery.send_data(self.time_objects[key])
+                        del_keys.append(key)
+            
+                    for k in del_keys:
+                        del self.time_objects[k]
+
+                        
                     self.time_objects[date] = [json]
+                else:
+                    self.time_objects[date].append(json)
+
+                    
 
             except ValueError:
                 print("Error while parsing date")
 
             self.q.task_done()
+
+            print("TASK DONE CARALHO")
+
+            count+=1
 
 
 
