@@ -123,16 +123,17 @@ class Camera:
 
         if obj.n_stop > 2:
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True}
-
+        elif obj.cls == 0:
+             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "inside_road": is_inside, "is_stopped": True}
         else:
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False}
 
+
+      
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
             
-
-        # print(data)
 
         #print(data)
 
@@ -172,40 +173,55 @@ class Camera:
 
         for i, box in enumerate(bbox_xyxy):
             
-            center_x, center_y = box_center(box)
+            ret = int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked 
 
-            if tracked_objects[i].cross_line != True and is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]) :
-                
+            print(ret)
+            
+            if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked : #Person
+                print(tracked_objects[i].arealy_tracked)
+     
+                track_data.append(
+                    
+                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i],velocity=0,  frame = im0 ))
 
-       
-                tracked_objects[i].cross_line = True
-                tracked_objects[i].init_time = times
-                tracked_objects[i].frame = im0
+                tracked_objects[i].arealy_tracked = True
+            
+            else:
+
+                center_x, center_y = box_center(box)
+
+                if tracked_objects[i].cross_line != True and is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]) :
+                    
+
+        
+                    tracked_objects[i].cross_line = True
+                    tracked_objects[i].init_time = times
+                    tracked_objects[i].frame = im0
 
 
-            elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
-                
+                elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
+                    
 
-                # print("AKI CARALHO")
+                    # print("AKI CARALHO")
 
-                speed = self.estimateSpeed(times - tracked_objects[i].init_time)
+                    speed = self.estimateSpeed(times - tracked_objects[i].init_time)
 
+
+                    track_data.append(
+                        
+                    DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i], 
+                        speed , tracked_objects[i].frame ))
+
+
+                    tracked_objects[i].cross_line = False
+                    tracked_objects[i].init_time = None
+                    tracked_objects[i].frame = None
+
+                    continue
 
                 track_data.append(
                     
-                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i], 
-                    speed , tracked_objects[i].frame ))
-
-
-                tracked_objects[i].cross_line = False
-                tracked_objects[i].init_time = None
-                tracked_objects[i].frame = None
-
-                continue
-
-            track_data.append(
-                
-            DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i] ))
+                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i] ))
 
     
         return bbox_xyxy, track_data
@@ -261,6 +277,7 @@ class Camera:
         while True:
             print("count ", count)
             json, image_time = self.q.get()
+            print(json)
             now = datetime.now()
             time_from_image = self.reader.readtext(image_time, detail=0)
             res = re.findall("\d{2}", time_from_image[0])
@@ -294,7 +311,7 @@ class Camera:
                     # Sending old datetime objects data
                     for key in self.time_objects:
             
-                        self.celery.send_data(self.time_objects[key])
+                        #self.celery.send_data(self.time_objects[key])
                         del_keys.append(key)
             
                     for k in del_keys:
@@ -315,7 +332,6 @@ class Camera:
             print("TASK DONE CARALHO")
 
             count+=1
-
 
 
     def euclidean_distance(self, detection, tracked_object):
@@ -476,7 +492,9 @@ class Camera:
 
                     bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
 
-                    [self.send_data(obj, names=names, gn=gn) for obj in track_data if obj.velocity]
+                    for obj in track_data:
+                        if obj.velocity or (obj.cls == 0  and obj.frame is not None ):
+                            self.send_data(obj, names=names, gn=gn)
 
                     draw_boxes(im0, bbox_xyxy, track_data)
                     draw_detection_area(im0, self.detect_area)

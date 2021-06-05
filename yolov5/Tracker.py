@@ -254,6 +254,7 @@ class TrackedObject:
         self.detected_at_least_once_points = np.array([False] * self.num_points)
         self.previous_detection = None
         self.n_stop = 0
+        self.arealy_tracked = False
 
     def setup_filter(self, initial_detection: np.array):
         initial_detection = validate_points(initial_detection)
