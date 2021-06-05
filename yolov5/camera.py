@@ -14,6 +14,7 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from numpy import random
 import time
+import threading
 from utils.plots import plot_one_box, color_list
 import cv2
 import matplotlib.path as mpltPath
@@ -51,7 +52,7 @@ class Camera:
         distance_threshold= self.max_distance_between_points,
         initialization_delay = 2
     )
-    
+        threading.Thread(target=self.process_data, daemon=True).start()
 
     def estimateSpeed(self, time):
     
@@ -65,7 +66,7 @@ class Camera:
 
         return lat, lon
 	
-    def send_data(self, obj, names, frame, gn):
+    def send_data(self, obj, names, gn):
         """
         Only send frames to this function if an object is detected to further processing.
         It is expected that deep_sort sends objects data with ids associated to them
@@ -93,7 +94,6 @@ class Camera:
         # TODO : falta normalizar os dados
 
         
-
         #center_x, center_y = box_center(obj.xyxy)
 
 
@@ -111,32 +111,29 @@ class Camera:
             obj.cls = len(names) - 1
         
 
-        if is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1] ):
 
+        print("ENVIA CARALHO")
+        
 
-            print("esta dentro CARALHO")
+        xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
+
+        #lat, lon =self.calibrate_geoCoods( (center_x, center_y ), self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
+        lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
+
+        if obj.n_stop > 2:
+            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True}
+
+        else:
+            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False}
+
+        # id should be the id from deep sort
+        # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
+        # Dps fala comigo Miguel, ass Hugo
             
 
+        print(data)
 
-            xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
-
-            #lat, lon =self.calibrate_geoCoods( (center_x, center_y ), self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
-            lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
-
-            if obj.n_stop > 2:
-                data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True})
-            else:
-                data = json.dumps({"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False})
-
-            # id should be the id from deep sort
-            # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
-            # Dps fala comigo Miguel, ass Hugo
-
-                
-
-            print(data)
-
-            self.q.put((data, frame[50:125, 1725:2250]))
+        self.q.put((data, obj.frame[50:125, 1725:2250]))
 
         #return data
 
@@ -180,24 +177,32 @@ class Camera:
        
                 tracked_objects[i].cross_line = True
                 tracked_objects[i].init_time = times
+                tracked_objects[i].frame = im0
 
-  
-                
 
             elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
                 
 
                 print("AKI CARALHO")
-                speed = self.estimateSpeed(times - tracked_objects[i].init_time)
-                print(speed)
-                tracked_objects[i].cross_line = False
 
-                return
-                
+                speed = self.estimateSpeed(times - tracked_objects[i].init_time)
+
+
+                track_data.append(
+                    
+                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i], 
+                    speed , tracked_objects[i].frame ))
+
+
+                tracked_objects[i].cross_line = False
+                tracked_objects[i].init_time = None
+                tracked_objects[i].frame = None
+
+                continue
+
             track_data.append(
                 
-            DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i], 
-                self.estimateSpeed(5) ))
+            DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i] ))
 
     
         return bbox_xyxy, track_data
@@ -279,7 +284,10 @@ class Camera:
                     # Sending old datetime objects data
                     for key in self.time_objects:
                         for json in self.time_objects[key]:
-                            self.celery.send_data(json)
+                            print(json)
+                            
+                            
+                            #self.celery.send_data(json)
                     self.time_objects[date] = [json]
 
             except ValueError:
@@ -447,7 +455,7 @@ class Camera:
 
                     bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
 
-                    [self.send_data(obj, names=names, frame=im0, gn=gn) for obj in track_data]
+                    [self.send_data(obj, names=names, gn=gn) for obj in track_data if obj.velocity]
 
                     draw_boxes(im0, bbox_xyxy, track_data)
                     draw_detection_area(im0, self.detect_area)

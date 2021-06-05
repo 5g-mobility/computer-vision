@@ -249,6 +249,7 @@ class TrackedObject:
             TrackedObject.initializing_count
         )  # Just for debugging
         TrackedObject.initializing_count += 1
+        self.frame = None
         self.setup_filter(initial_detection.points)
         self.detected_at_least_once_points = np.array([False] * self.num_points)
         self.previous_detection = None
