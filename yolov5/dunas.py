@@ -10,7 +10,7 @@ class Dunas(Camera):
             top_left, top_right, bottom_left, bottom_right
         """
         road_area =  ( [(307.7, 114.2), (349.6, 106.5), (501.1, 477.5), (781.1, 479.2)] )
-        model = "../sensor_fusion/ridge.pkl"
+        model = "./sensor_fusion/ridge.pkl"
         self.celery = celery
         super().__init__(road_area = road_area, model_path=model)
 
