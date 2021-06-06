@@ -4,7 +4,7 @@ import matplotlib.path as mpltPath
 
 import numpy as np
 
-image = cv2.imread('./frame3.jpg')
+image = cv2.imread('./frame33.jpg')
 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
@@ -73,10 +73,10 @@ masked_image = cv2.bitwise_and(image, mask)
 #plt.show()
 
 
-fig, ax = plt.subplots(1, 2)
-ax[0].imshow(image)
-ax[1].imshow(masked_image)
-#plt.imshow(image)
+# fig, ax = plt.subplots(1, 2)
+# ax[0].imshow(image)
+# ax[1].imshow(masked_image)
+plt.imshow(image)
 
 plt.show()
 
