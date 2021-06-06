@@ -1,16 +1,44 @@
 from camera import *
 from tasks import CeleryTasks
+import numpy as np
 
 class RiaAtiva(Camera):
 
     def __init__(self, celery):
 
-        road_area = ([(895.4, 162.5), (1002, 1296), (2165, 1296), (939.1, 162.5)],
-                          [(1762, 810), (2165, 1296), (2304, 1296), (2304, 984)])
+        road_area = [ [(895, 194), (1002, 1296), (2288, 1296), (988, 194)],
+                          [(1762, 810), (2165, 1296), (2304, 1296), (2304, 984)] ]
+        detect_area = [([1406, 388], [627, 282]),([1237, 312],[661, 254])]
+        detect_dist = 7.06
         self.celery = celery
-        model = "../sensor_fusion/ponte.pkl"
-        super().__init__(road_area)
+        model = "../sensor_fusion/ria.pkl"
+        super().__init__(road_area, model, detect_area, detect_dist)
 
+
+        # def rescale_coords(self,point, img):
+        # x, y = point
+        # img_y, img_x = img.shape[:2]
+        # n_img_x,n_img_y = IMG_SIZE
+
+        # return x * (img_x/n_img_x), y * (img_y/n_img_y)
+
+
+    # def calibrate_geoCoods(self, coords, geo_coords):
+
+    #     lat, lon =  geo_coords
+
+
+    #     coords_rescale = self.rescale_coords(coords, )
+
+
+    #     p = np.array([lat, lon])
+
+    #     line1 = np.array()
+
+    #     line2 = np.array()
+
+
+    #     return lat, lon
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

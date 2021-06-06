@@ -4,7 +4,7 @@ import matplotlib.path as mpltPath
 
 import numpy as np
 
-image = cv2.imread('./frame4.jpg')
+image = cv2.imread('./frame33.jpg')
 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
@@ -31,15 +31,15 @@ print("cols ", cols) # x - 2304
 
 #(107,860) (0,0) (0, 872) (642, 1296)
 
-top_left = [107,860]
+top_left = [627, 282]
 
-bottom_left = [0, 872]
-bottom_right = [0,1296]
-top_right = [642, 1296] 
+bottom_left = [1406, 388]
+bottom_right = [1237, 312]
+top_right = [661, 254] 
 
 # dunas - polygon = [(828, 287),(1345, 1294),(2130, 1294),(957, 287)]
 
-polygon1 = [(895.4, 162.5),(1002, 1296),(2165, 1296),(939.1, 162.5)]
+polygon1 = [(895.4, 162.5), (1002, 1296), (2288, 1296), (939.8, 162.5)]
 path1 = mpltPath.Path(polygon1)
 
 
@@ -73,9 +73,10 @@ masked_image = cv2.bitwise_and(image, mask)
 #plt.show()
 
 
-fig, ax = plt.subplots(1, 2)
-ax[0].imshow(image)
-ax[1].imshow(masked_image)
+# fig, ax = plt.subplots(1, 2)
+# ax[0].imshow(image)
+# ax[1].imshow(masked_image)
+plt.imshow(image)
 
 plt.show()
 

@@ -1,7 +1,8 @@
 
 import math
+from os import times
 import torch
-from utils.bbox import box_center, draw_boxes, compute_color_for_labels
+from utils.bbox import box_center, draw_boxes, draw_detection_area, is_inside_area
 import argparse
 from pathlib import Path
 from utils.general import increment_path
@@ -13,6 +14,7 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from numpy import random
 import time
+import threading
 from utils.plots import plot_one_box, color_list
 import cv2
 import matplotlib.path as mpltPath
@@ -31,13 +33,15 @@ IMG_SIZE = 2304, 1296
 
 class Camera:
 
-    def __init__(self, road_area=None, model_path=None):
+    def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0):
         self.source = "../video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
-        self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
+        self.is_road_scale = False
         self.max_distance_between_points = 70
         self.ppm = 10
         self.fps = None
+        self.detect_area =  detect_area
+        self.detect_dist = detect_dist
         self.mapping = self.initialize_mapping_model(model_path)
         self.time_objects = {}  # Object JSON Data to be sent to celery regarding one timestamp
         self.q = queue.Queue()  # Queue of frames to be OCR
@@ -48,23 +52,22 @@ class Camera:
         distance_threshold= self.max_distance_between_points,
         initialization_delay = 2
     )
-    
+        self.reader = Reader(['en'])
+        threading.Thread(target=self.process_data, daemon=True).start()
 
-    def estimateSpeed(self, location1, location2):
+    def estimateSpeed(self, time):
     
         """ calculate objetct speed """
-        d_pixels = math.sqrt(math.pow(location2[0] - location1[0], 2) + math.pow(location2[1] - location1[1], 2))
-        # ppm = location2[2] / carWidht
-        # real = 100
-        # 599.923537
 
-        d_meters = d_pixels / self.ppm
-        #print("d_pixels=" + str(d_pixels), "d_meters=" + str(d_meters))
+        return self.detect_dist/(time*0.001) * 3.6
 
-        speed = d_meters * self.fps * 3.6
-        return speed
+    def calibrate_geoCoods(self, coords):
+
+        lat, lon =  coords
+
+        return lat, lon
 	
-    def send_data(self, obj, names, frame, gn):
+    def send_data(self, obj, names, gn):
         """
         Only send frames to this function if an object is detected to further processing.
         It is expected that deep_sort sends objects data with ids associated to them
@@ -89,67 +92,138 @@ class Camera:
         bbox_h = obj.xyxy[3]
         # id
 
-
-        # TODO: corrigir isto 
-        center_x, center_y = box_center(obj.xyxy)
-
-        # bike
-        if obj.cls == 1 and self.isMotocycle(center_x, center_y):
-            obj.cls = len(names) - 1
-            
         # TODO : falta normalizar os dados
 
-        xywh = (xyxy2xywh(torch.tensor(obj.xyxy).view(1, 4)) / gn).view(-1).tolist() 
         
-        print(xywh)
+        #center_x, center_y = box_center(obj.xyxy)
 
-        lat, lon = self.mapping.predict(np.asarray([xywh[0:2]])).tolist()[0]
 
+        xywh = xyxy2xywh(obj.xyxy.view(1, 4)).view(-1)
+        
+
+
+        center_x, center_y = xywh.tolist()[:2]
+
+        is_inside = self.inside_road(center_x, center_y)
+
+        # bike
+        if obj.cls == 1 and self.isMotocycle(is_inside):
+
+            obj.cls = len(names) - 1
+        
+
+
+        print("ENVIA CARALHO")
+        
+
+        xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
+
+        #lat, lon =self.calibrate_geoCoods( (center_x, center_y ), self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
+        lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
+
+        if obj.n_stop > 2:
+            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True}
+        elif obj.cls == 0:
+             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "inside_road": is_inside, "is_stopped": True}
+        else:
+            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False}
+
+
+      
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
+            
 
-        data = json.dumps({"class": names[int(obj.cls)],"lat": lat,
-        "long": lon, "speed": obj.velocity
-                           ,"id": id})
+        #print(data)
 
-        print(data)
-
-        self.q.put((data, frame[50:125, 1725:2250]))
+        self.q.put((data, obj.frame[50:125, 1725:2250]))
 
         #return data
 
-    def process_tracking_data(self, tracked_objects, img, im0):
+    def process_tracking_data(self, tracked_objects, img, im0, times):
         
-        bbox = []
         bbox_xyxy = []
         track_data = []
-        
+        idx = []
+        scores = []
+        last_xyxy = []
+        n_stops = []
+
+
         for obj in tracked_objects:
+
+    
 
             if obj.previous_detection:
 
-                last_xyxy = [y  for b in obj.previous_detection.points.tolist() for y in b]            
+                last_xyxy.append([y  for b in obj.previous_detection.points.tolist() for y in b] )           
 
-            for box in obj.last_detection.points.tolist():
-                for x in box:
-                    bbox.append(x)
+            bbox_xyxy.append([x for box in obj.last_detection.points.tolist() for x in box])
 
-            bbox_xyxy.append(bbox)
+            scores.append(obj.last_detection.scores)
 
-            xywh = xyxy2xywh_no_tensor(bbox)
+            idx.append(obj.id)
 
-            track_data.append(
-                DataObject(obj.id, bbox, obj.last_detection.scores[1], 
-                obj.last_detection.scores[1], 
-                self.estimateSpeed(xywh, xyxy2xywh_no_tensor(last_xyxy) )))
+            n_stops.append( obj.n_stop)
 
-            bbox = []
-            
+
         bbox_xyxy = scale_coords(
         img.shape[2:], torch.tensor(bbox_xyxy), im0.shape).round()
-    
 
+        for i, box in enumerate(bbox_xyxy):
+            
+            ret = int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked 
+
+            print(ret)
+            
+            if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked : #Person
+                print(tracked_objects[i].arealy_tracked)
+     
+                track_data.append(
+                    
+                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i],velocity=0,  frame = im0 ))
+
+                tracked_objects[i].arealy_tracked = True
+            
+            else:
+
+                center_x, center_y = box_center(box)
+
+                if tracked_objects[i].cross_line != True and is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]) :
+                    
+
+        
+                    tracked_objects[i].cross_line = True
+                    tracked_objects[i].init_time = times
+                    tracked_objects[i].frame = im0
+
+
+                elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
+                    
+
+                    # print("AKI CARALHO")
+
+                    speed = self.estimateSpeed(times - tracked_objects[i].init_time)
+
+
+                    track_data.append(
+                        
+                    DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i], 
+                        speed , tracked_objects[i].frame ))
+
+
+                    tracked_objects[i].cross_line = False
+                    tracked_objects[i].init_time = None
+                    tracked_objects[i].frame = None
+
+                    continue
+
+                track_data.append(
+                    
+                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i] ))
+
+    
         return bbox_xyxy, track_data
     
 
@@ -172,26 +246,40 @@ class Camera:
 
 
 
-    def isMotocycle(self, center_x, center_y):
+    def isMotocycle(self, is_inside):
         """ check if detected object is an motocycle
 
             if ouside of road - cyclist
             else - motocycle
         """
 
-        if (self.inside_road(center_x, center_y)):
+        if (is_inside):
             return True
 
         return False
+
+    def rescale_coords(self,point, img):
+        x, y = point
+        img_y, img_x = img.shape[:2]
+        n_img_x,n_img_y = IMG_SIZE
+
+        return x * (img_x/n_img_x), y * (img_y/n_img_y)
+
+
+
 
 
 
     def process_data(self):
         """Processes time of the frame and, accordingly with the data, it will send """
+
+        count = 0
         while True:
+            print("count ", count)
             json, image_time = self.q.get()
+            print(json)
             now = datetime.now()
-            time_from_image = Reader(['en']).readtext(image_time, detail=0)
+            time_from_image = self.reader.readtext(image_time, detail=0)
             res = re.findall("\d{2}", time_from_image[0])
             try:
                 date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
@@ -215,23 +303,45 @@ class Camera:
 
                 json['date'] = date
 
+                
+
                 if date not in self.time_objects:
+
+                    del_keys = []
                     # Sending old datetime objects data
                     for key in self.time_objects:
-                        for json in self.time_objects[key]:
-                            self.celery.send_data(json)
+            
+                        #self.celery.send_data(self.time_objects[key])
+                        del_keys.append(key)
+            
+                    for k in del_keys:
+                        del self.time_objects[k]
+
+                        
                     self.time_objects[date] = [json]
+                else:
+                    self.time_objects[date].append(json)
+
+                    
 
             except ValueError:
                 print("Error while parsing date")
 
             self.q.task_done()
 
+            print("TASK DONE CARALHO")
+
+            count+=1
 
 
     def euclidean_distance(self, detection, tracked_object):
         return np.linalg.norm(detection.points[0:2] - tracked_object.estimate[0:2])
 
+    def rescale_detect_area(self, line, im0):
+
+        p1, p2 = line
+
+        return [round(x) for x in list(self.rescale_coords(p1, im0))], [round(x) for x in list(self.rescale_coords(p2, im0))]
 
 
     def detect(self, opt, save_img=False):
@@ -239,6 +349,7 @@ class Camera:
         webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
             ('rtsp://', 'rtmp://', 'http://'))
 
+        stream = False
         # Directories
         save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
         (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
@@ -260,12 +371,16 @@ class Camera:
             modelc = load_classifier(name='resnet101', n=2)  # initialize
             modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
 
+            
+
         # Set Dataloader
         vid_path, vid_writer = None, None
         if webcam:
             view_img = True
             cudnn.benchmark = True  # set True to speed up constant image size inference
             dataset = LoadStreams(source, img_size=imgsz)
+            stream = True
+
         else:
             save_img = True
             dataset = LoadImages(source, img_size=imgsz)
@@ -275,6 +390,7 @@ class Camera:
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
+        names.append('motocycle')
         colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
         # Run inference
@@ -284,7 +400,23 @@ class Camera:
 
         old_im0s = np.array([], [])
 
-        for path, img, im0s, vid_cap in dataset:
+        for path, img, im0s, vid_cap, times in dataset:
+            #im0s -  imagem original
+            # img - imagem resize
+
+            if not self.is_road_scale:
+                im = im0s
+                if stream:
+                    im = im0s[0]
+
+                if self.detect_area:
+
+                    self.detect_area = [self.rescale_detect_area(line, im) for line in self.detect_area ]
+                    
+
+                self.road_area = [ [ self.rescale_coords(point,  im) for point in area ] for area in self.road_area ]                
+                self.mplt_path = [mpltPath.Path(area) for area in self.road_area]
+                self.is_road_scale = True
 
             if np.array_equal(im0s, old_im0s):
                 time.sleep(0.01)
@@ -321,6 +453,8 @@ class Camera:
                 else:
                     p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
+
+
                 p = Path(p)  # to Path
                 save_path = str(save_dir / p.name)  # img.jpg
                 txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
@@ -349,6 +483,7 @@ class Camera:
                         [xyxy[2].item(), xyxy[3].item()] ])
 
 
+
                         norfair_detections.append(Detection(bbox, np.array([conf, cls])))
 
 
@@ -356,11 +491,18 @@ class Camera:
 
                 if tracked_objects:
 
-                    bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0)
+                    bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
 
-                    [self.send_data(obj, names=names, frame=im0, gn=gn) for obj in track_data]
+                    
+                    for obj in track_data:
+                        if obj.velocity or (obj.cls == 0  and obj.frame is not None ):
+                            self.send_data(obj, names=names, gn=gn)
 
                     draw_boxes(im0, bbox_xyxy, track_data)
+                    draw_detection_area(im0, self.detect_area)
+
+                   
+
 
                 # Print time (inference + NMS)
                 print(f'{s}Done. ({t2 - t1:.3f}s)')

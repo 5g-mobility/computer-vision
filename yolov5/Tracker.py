@@ -236,6 +236,8 @@ class TrackedObject:
         self.point_hit_counter: np.ndarray = (
             np.ones(self.num_points) * self.point_hit_inertia_min
         )
+        self.cross_line = False
+        self.init_time =  None
         self.last_distance: Optional[float] = None
         self.current_min_distance: Optional[float] = None
         self.last_detection: "Detection" = initial_detection
@@ -247,9 +249,12 @@ class TrackedObject:
             TrackedObject.initializing_count
         )  # Just for debugging
         TrackedObject.initializing_count += 1
+        self.frame = None
         self.setup_filter(initial_detection.points)
         self.detected_at_least_once_points = np.array([False] * self.num_points)
         self.previous_detection = None
+        self.n_stop = 0
+        self.arealy_tracked = False
 
     def setup_filter(self, initial_detection: np.array):
         initial_detection = validate_points(initial_detection)
@@ -367,6 +372,27 @@ class TrackedObject:
         self.detected_at_least_once_points = np.logical_or(
             self.detected_at_least_once_points, points_over_threshold_mask
         )
+        # print("tracker")
+        # print(self.last_detection.points)
+        # print("-----------------------------")
+        # print(self.previous_detection.points)
+
+
+        # TODO: colocar linha y, que o carro passando aumenta a dist em 0.2
+
+        dist = np.linalg.norm(self.last_detection.points - self.previous_detection.points)
+
+        
+
+        print()
+        if  dist < 0.5:
+            self.n_stop +=1
+
+        else:
+            self.n_stop = 0
+
+    
+
 
     def __repr__(self):
         if self.last_distance is None:
