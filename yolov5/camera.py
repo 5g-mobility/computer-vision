@@ -34,7 +34,7 @@ IMG_SIZE = 2304, 1296
 class Camera:
 
     def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0):
-        self.source = "../video/video_10s.mp4"
+        self.source = "./video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.is_road_scale = False
         self.max_distance_between_points = 70
@@ -111,11 +111,7 @@ class Camera:
 
             obj.cls = len(names) - 1
         
-
-
-        print("ENVIA CARALHO")
         
-
         xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
 
         #lat, lon =self.calibrate_geoCoods( (center_x, center_y ), self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
@@ -135,11 +131,9 @@ class Camera:
         # Dps fala comigo Miguel, ass Hugo
             
 
-        #print(data)
 
         self.q.put((data, obj.frame[50:125, 1725:2250]))
 
-        #return data
 
     def process_tracking_data(self, tracked_objects, img, im0, times):
         
@@ -175,10 +169,8 @@ class Camera:
             
             ret = int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked 
 
-            print(ret)
             
             if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked : #Person
-                print(tracked_objects[i].arealy_tracked)
      
                 track_data.append(
                     
@@ -201,8 +193,6 @@ class Camera:
 
                 elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
                     
-
-                    # print("AKI CARALHO")
 
                     speed = self.estimateSpeed(times - tracked_objects[i].init_time)
 
@@ -273,9 +263,7 @@ class Camera:
     def process_data(self):
         """Processes time of the frame and, accordingly with the data, it will send """
 
-        count = 0
         while True:
-            print("count ", count)
             json, image_time = self.q.get()
             print(json)
             now = datetime.now()
@@ -299,8 +287,6 @@ class Camera:
                     print("Bad Hour processed, was: {}".format(date.hour))
                     date.hour = now.hour
 
-                print(date)
-
                 json['date'] = date
 
                 
@@ -311,7 +297,7 @@ class Camera:
                     # Sending old datetime objects data
                     for key in self.time_objects:
             
-                        #self.celery.send_data(self.time_objects[key])
+                        self.celery.send_data(self.time_objects[key])
                         del_keys.append(key)
             
                     for k in del_keys:
@@ -329,9 +315,9 @@ class Camera:
 
             self.q.task_done()
 
-            print("TASK DONE CARALHO")
 
-            count+=1
+
+    
 
 
     def euclidean_distance(self, detection, tracked_object):
@@ -350,9 +336,6 @@ class Camera:
             ('rtsp://', 'rtmp://', 'http://'))
 
         stream = False
-        # Directories
-        save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
-        (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
         # Initialize
         set_logging()
@@ -376,13 +359,13 @@ class Camera:
         # Set Dataloader
         vid_path, vid_writer = None, None
         if webcam:
-            view_img = True
+            
             cudnn.benchmark = True  # set True to speed up constant image size inference
             dataset = LoadStreams(source, img_size=imgsz)
             stream = True
 
         else:
-            save_img = True
+            
             dataset = LoadImages(source, img_size=imgsz)
 
 
@@ -456,8 +439,7 @@ class Camera:
 
 
                 p = Path(p)  # to Path
-                save_path = str(save_dir / p.name)  # img.jpg
-                txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
+
                 s += '%gx%g ' % img.shape[2:]  # print string
                 gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if len(det):
@@ -472,11 +454,7 @@ class Camera:
 
                     # Write results
                     for *xyxy, conf, cls in reversed(det):
-                        if save_txt:  # Write to file
-                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                            line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
-                            with open(txt_path + '.txt', 'a') as f:
-                                f.write(('%g ' * len(line)).rstrip() % line + '\n')
+
                         
                         bbox = np.array([
                         [xyxy[0].item(), xyxy[1].item()],
@@ -491,7 +469,11 @@ class Camera:
 
                 if tracked_objects:
 
-                    bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
+                    if times is None:
+                        bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0,dataset.time_mili)
+                    else:
+
+                        bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
 
                     
                     for obj in track_data:
@@ -511,28 +493,8 @@ class Camera:
                 if view_img:
                     cv2.imshow(str(p), im0)
 
-                # Save results (image with detections)
-                if save_img:
-                    if dataset.mode == 'image':
-                        cv2.imwrite(save_path, im0)
-                    else:  # 'video'
-                        if vid_path != save_path:  # new video
-                            vid_path = save_path
-                            if isinstance(vid_writer, cv2.VideoWriter):
-                                vid_writer.release()  # release previous video writer
 
-                            fourcc = 'mp4v'  # output video codec
-                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                            vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
-                        vid_writer.write(im0)
 
-        if save_txt or save_img:
-            s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-            print(f"Results saved to {save_dir}{s}")
-
-        print(f'Done. ({time.time() - t0:.3f}s)')
 
 
 if __name__ == '__main__':

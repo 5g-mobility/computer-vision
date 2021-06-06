@@ -307,5 +307,8 @@ ENV/
 # mkdocs documentation
 /site
 
+#vs code
+
+.vscode/**
 # End of https://www.gitignore.io/api/macos,linux,django,python,pycharm
 
