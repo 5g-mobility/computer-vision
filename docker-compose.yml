@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+    mqtt-consumer-cam-ria-ativa:
+        build:
+            context: .
+        entrypoint: ["python", "main.py", "--rabbit_mq_url", "asda", "--cam", "ponteBarra"]
+        restart: unless-stopped
+    mqtt-consumer-cam-ponte-barra:
+        build:
+            context: .
+        entrypoint: ["python", "main.py", "--rabbit_mq_url", "asda", "--cam", "riaAtiva"]
+        restart: unless-stopped
