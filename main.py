@@ -9,7 +9,7 @@ import torch
 from yolov5.tasks import CeleryTasks
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    #parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
+    parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
     parser.add_argument('--cam',
                          choices=['riaAtiva', 'ponteBarra', 'dunas'],
                          help='Camera to be used', required=True)
@@ -48,8 +48,7 @@ if __name__ == '__main__':
     elif opt.cam == 'dunas':
         location = Dunas(celery_instance)
         opt.weights = './yolov5/weights/best-duna.pt'
-        #opt.source = 'rtsp://pei:5g-mobix@10.0.19.202:554'
-        opt.source = './video/video_10s.mp4'
+        opt.source = 'rtsp://pei:5g-mobix@10.0.19.202:554'
 
     with torch.no_grad():
         location.detect(opt)

@@ -193,8 +193,12 @@ class Camera:
 
                 elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
                     
+                    
+                
+        
+                    direction = 1 if tracked_objects[i].last_detection.points[0][1] - tracked_objects[i].previous_detection.points[0][1] > 0 else - 1
 
-                    speed = self.estimateSpeed(times - tracked_objects[i].init_time)
+                    speed = self.estimateSpeed(times - tracked_objects[i].init_time) * direction
 
 
                     track_data.append(
