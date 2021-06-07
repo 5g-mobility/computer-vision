@@ -4,7 +4,7 @@ import matplotlib.path as mpltPath
 
 import numpy as np
 
-image = cv2.imread('./frame33.jpg')
+image = cv2.imread('./frame41.jpg')
 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
@@ -81,28 +81,28 @@ plt.imshow(image)
 plt.show()
 
 
-image2 = cv2.imread("./frame2.jpg")
+# image2 = cv2.imread("./frame2.jpg")
 
 
-rows2, cols2 = image2.shape[:2]
+# rows2, cols2 = image2.shape[:2]
 
 
-print("rows ", rows2) 
-print("cols ", cols2) 
+# print("rows ", rows2) 
+# print("cols ", cols2) 
 
-image2 = cv2.resize(image2, (cols, rows))
-
-
+# image2 = cv2.resize(image2, (cols, rows))
 
 
-rows2, cols2 = image2.shape[:2]
-
-print("rows ", rows2) 
-print("cols ", cols2) 
 
 
-plt.imshow(image2)
-plt.show()
+# rows2, cols2 = image2.shape[:2]
+
+# print("rows ", rows2) 
+# print("cols ", cols2) 
+
+
+# plt.imshow(image2)
+# plt.show()
 
 # ret, thresh = cv2.threshold(masked_image, 130, 145, cv2.THRESH_BINARY)
 
