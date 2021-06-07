@@ -37,7 +37,6 @@ IMG_SIZE = 2304, 1296
 class Camera:
 
     def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0):
-        self.source = "./video/video_10s.mp4"
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.is_road_scale = False
         self.max_distance_between_points = 70
@@ -279,13 +278,15 @@ class Camera:
             try:
                 date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
                                             "%Y %m %d %H %M %S") - (timedelta(hours=1)) 
-
-                if '201' in self.source and json['speed'] > 0:
-                    date-= timedelta(seconds=1)
-
-                if '203' in self.source:
-                    json['speed']= json['speed'] * -1
                 
+                
+                if '203' in self.source and json['speed'] > 0:
+                    date -= timedelta(seconds=1)
+
+                if '201' in self.source and json['class'] in ['car', 'truck', 'motocycle']:
+                    json['speed']= json['speed'] * -1
+                    if json['speed'] > 0:
+                        date -= timedelta(seconds=2)
 
                 if date.year != now.year:
                     print("Bad Year processed, was: {}".format(date.year))
@@ -301,16 +302,16 @@ class Camera:
                     print("Bad Day processed, was: {}".format(date.day))
                     date = datetime(date.year,date.month,  now.day, date.hour, date.minute, date.second )
                
-                if abs(date.hour - now.hour) > 2:
+                if abs(date.hour - now.hour) >= 2:
                     # Maybe it's better to check if the difference between the hours is higher than two
                     print("Bad Hour processed, was: {}".format(date.hour))
                     date = datetime(date.year,date.month,  date.day, now.hour, date.minute, date.second )
 
-                if abs(date.minute - now.minute) > 2:
+                if abs(date.minute - now.minute) >= 2:
                     print("Bad Minute processed, was: {}".format(date.hour))
                     date = datetime(date.year,date.month,  date.day, date.hour, now.minute, date.second )
                 
-                if abs(date.second - now.second) > 30:
+                if abs(date.second - now.second) >= 20:
                     print("Bad Second processed, was: {}".format(date.hour))
                     self.q.task_done()
                     continue
@@ -367,6 +368,7 @@ class Camera:
 
     def detect(self, opt, save_img=False):
         source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
+        self.source = source
         webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
             ('rtsp://', 'rtmp://', 'http://'))
 
