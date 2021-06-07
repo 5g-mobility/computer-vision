@@ -27,6 +27,8 @@ import pandas as pd
 import re
 from datetime import datetime
 from easyocr import Reader
+from datetime import timezone, timedelta
+
 
 
 IMG_SIZE = 2304, 1296
@@ -124,7 +126,7 @@ class Camera:
         else:
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False}
 
-
+        print(data)
       
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
@@ -269,41 +271,64 @@ class Camera:
 
         while True:
             json, image_time = self.q.get()
-            print(json)
+
+
+        
+
             now = datetime.now()
             time_from_image = self.reader.readtext(image_time, detail=0)
             res = re.findall("\d{2}", time_from_image[0])
             try:
                 date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
-                                            "%Y %m %d %H %M %S")
+                                            "%Y %m %d %H %M %S").astimezone(timezone(timedelta(hours=1)))
+
+                date = date.utcnow()
+
+                print(date)
+
+
                 if date.year != now.year:
                     print("Bad Year processed, was: {}".format(date.year))
-                    date.year = now.year
+                    date = datetime(now.year,date.month,  date.day, date.hour, date.minute, date.second )
+
                 if date.month != now.month:
                     print("Bad Month processed, was: {}".format(date.month))
-                    date.month = now.month
+
+                    date = datetime(date.year,now.month,  date.day, date.hour, date.minute, date.second )
+                
                 if date.day != now.day:
-                    # Maybe it's better to check if the difference between the days is higher than two
+                  
                     print("Bad Day processed, was: {}".format(date.day))
-                    date.day = now.day
-                if date.hour != now.hour:
+                    date = datetime(date.year,date.month,  now.day, date.hour, date.minute, date.second )
+               
+                if abs(date.hour - now.hour) > 2:
                     # Maybe it's better to check if the difference between the hours is higher than two
                     print("Bad Hour processed, was: {}".format(date.hour))
-                    date.hour = now.hour
+                    date = datetime(date.year,date.month,  date.day, now.hour, date.minute, date.second )
+
+                if abs(date.minute - now.minute) > 2:
+
+                    print("Bad Hour processed, was: {}".format(date.hour))
+                    date = datetime(date.year,date.month,  date.day, date.hour, now.minute, date.second )
+
+                
+    
 
                 json['date'] = date
 
                 
+                print(json)
 
                 if date not in self.time_objects:
 
                     del_keys = []
                     # Sending old datetime objects data
                     for key in self.time_objects:
+                       
             
-                        self.celery.send_data(self.time_objects[key])
+                        #self.celery.send_data(self.time_objects[key])
                         del_keys.append(key)
-            
+                         
                     for k in del_keys:
                         del self.time_objects[k]
 
@@ -312,6 +337,8 @@ class Camera:
                 else:
                     self.time_objects[date].append(json)
 
+
+                   
                     
 
             except ValueError:
