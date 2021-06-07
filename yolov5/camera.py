@@ -28,6 +28,7 @@ import re
 from datetime import datetime
 from easyocr import Reader
 from datetime import timezone, timedelta
+import matplotlib.pylab as plt
 
 
 
@@ -126,7 +127,7 @@ class Camera:
         else:
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False}
 
-        print(data)
+
       
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
@@ -191,7 +192,7 @@ class Camera:
                     tracked_objects[i].cross_line = True
                     tracked_objects[i].init_time = times
                     tracked_objects[i].frame = im0
-
+                    
 
                 elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
                     
