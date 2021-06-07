@@ -317,17 +317,13 @@ class LoadStreams:  # multiple IP or RTSP cameras
 
     def update(self, index, cap, url):
         # Read next stream frame in a daemon thread
-        n = 0
         while cap.isOpened():
-            n += 1
-            if n == 2:  # read every 2th frame
-                success, im = cap.read()
-                if not success:
-                    cap = self.connect_to_cam(url)
-               
-                self.times = self.time_mili(cap)
-                self.imgs[index] = im if success else self.imgs[index] * 0
-                n = 0
+            success, im = cap.read()
+            if not success:
+                cap = self.connect_to_cam(url)
+            
+            self.times = self.time_mili(cap)
+            self.imgs[index] = im if success else self.imgs[index] * 0
                 
             time.sleep(0.01)  # wait time
 
