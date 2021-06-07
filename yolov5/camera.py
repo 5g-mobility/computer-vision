@@ -199,7 +199,7 @@ class Camera:
                     
                 
         
-                    direction = 1 if tracked_objects[i].last_detection.points[0][1] - tracked_objects[i].previous_detection.points[0][1] > 0 else - 1
+                    direction = -1 if tracked_objects[i].last_detection.points[0][1] - tracked_objects[i].previous_detection.points[0][1] > 0 else 1
 
                     speed = self.estimateSpeed(times - tracked_objects[i].init_time) * direction
 
@@ -272,21 +272,20 @@ class Camera:
 
         while True:
             json, image_time = self.q.get()
-
-
         
-
-            now = datetime.now()
+            now = datetime.utcnow()
             time_from_image = self.reader.readtext(image_time, detail=0)
             res = re.findall("\d{2}", time_from_image[0])
             try:
                 date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
-                                            "%Y %m %d %H %M %S") - (timedelta(hours=1))
+                                            "%Y %m %d %H %M %S") - (timedelta(hours=1)) 
 
-                date = date.utcnow()
+                if '201' in self.source and json['speed'] > 0:
+                    date-= timedelta(seconds=1)
 
-                print(date)
-
+                if '203' in self.source:
+                    json['speed']= json['speed'] * -1
+                
 
                 if date.year != now.year:
                     print("Bad Year processed, was: {}".format(date.year))
@@ -308,16 +307,20 @@ class Camera:
                     date = datetime(date.year,date.month,  date.day, now.hour, date.minute, date.second )
 
                 if abs(date.minute - now.minute) > 2:
-
-                    print("Bad Hour processed, was: {}".format(date.hour))
+                    print("Bad Minute processed, was: {}".format(date.hour))
                     date = datetime(date.year,date.month,  date.day, date.hour, now.minute, date.second )
+                
+                if abs(date.second - now.second) > 30:
+                    print("Bad Second processed, was: {}".format(date.hour))
+                    self.q.task_done()
+                    continue
 
                 
     
 
                 json['date'] = date
 
-                
+                print(date)
                 print(json)
 
                 if date not in self.time_objects:
