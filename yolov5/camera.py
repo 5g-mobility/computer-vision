@@ -281,7 +281,7 @@ class Camera:
             res = re.findall("\d{2}", time_from_image[0])
             try:
                 date = datetime.strptime("{}{} {}".format(res[0], res[1], " ".join(res[2:])),
-                                            "%Y %m %d %H %M %S").astimezone(timezone(timedelta(hours=1)))
+                                            "%Y %m %d %H %M %S") - (timedelta(hours=1))
 
                 date = date.utcnow()
 
