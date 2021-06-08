@@ -303,16 +303,27 @@ class Camera:
                     print("Bad Day processed, was: {}".format(date.day))
                     date = datetime(date.year,date.month,  now.day, date.hour, date.minute, date.second )
                
-                if abs(date.hour - now.hour) >= 2:
+
+
+
+                then = datetime(date.year,date.month,  date.day, date.hour,0, 0)
+                actual = datetime(date.year,date.month,  date.day, now.hour,0, 0)
+                if abs((then - actual).total_seconds()) >= 2*3600:
                     # Maybe it's better to check if the difference between the hours is higher than two
                     print("Bad Hour processed, was: {}".format(date.hour))
                     date = datetime(date.year,date.month,  date.day, now.hour, date.minute, date.second )
+                    
+                then = datetime(date.year,date.month,  date.day, date.hour,date.minute, 0)
+                actual = datetime(date.year,date.month,  date.day, now.hour,now.minute, 0)
 
-                if abs(date.minute - now.minute) >= 2:
+                if abs((then - actual).total_seconds()) >= 2*60:
                     print("Bad Minute processed, was: {}".format(date.hour))
                     date = datetime(date.year,date.month,  date.day, date.hour, now.minute, date.second )
-                
-                if abs(date.second - now.second) >= 20:
+
+                then = datetime(date.year,date.month,  date.day, date.hour,date.minute, date.second)
+                actual = datetime(date.year,date.month,  date.day, now.hour,now.minute, now.second)
+
+                if abs((then - actual).total_seconds()) >= 20:
                     print("Bad Second processed, was: {}".format(date.hour))
                     self.q.task_done()
                     continue
