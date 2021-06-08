@@ -40,6 +40,7 @@ if __name__ == '__main__':
         opt.weights = './yolov5/weights/best-riaAtiva.pt'
         opt.source = 'rtsp://pei:5g-mobix@10.0.19.201:554'
         
+        
     elif opt.cam == 'ponteBarra':
         location = PraiaBarra(celery_instance)
         opt.weights = './yolov5/weights/best-ponte.pt'
