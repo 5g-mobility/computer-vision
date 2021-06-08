@@ -4,7 +4,7 @@ import matplotlib.path as mpltPath
 
 import numpy as np
 
-image = cv2.imread('./frame41.jpg')
+image = cv2.imread('./frame0.jpg')
 image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 

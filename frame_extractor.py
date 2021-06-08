@@ -14,4 +14,4 @@ def getFirstFrame(videofile):
 
 if __name__ == '__main__':
     #getFirstFrame("./yolov5/runs/detect/exp/pei_5g-mobix_10.0.19.202_554.mp4")
-    getFirstFrame("./runs/detect/exp18/pei_5g-mobix_10.0.19.203_554.mp4")
+    getFirstFrame("./yolov5/runs/detect/exp38/pei_5g-mobix_10.0.19.201_554.mp4")

@@ -39,7 +39,7 @@ class Camera:
     def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0):
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.is_road_scale = False
-        self.max_distance_between_points = 70
+        self.max_distance_between_points = 65
         self.ppm = 10
         self.fps = None
         self.detect_area =  detect_area
