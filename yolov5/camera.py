@@ -120,7 +120,7 @@ class Camera:
         #lat, lon =self.calibrate_geoCoods( (center_x, center_y ), self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
         lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
 
-        if obj.n_stop > 2:
+        if obj.is_stopped:
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True}
         elif obj.cls == 0:
              data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "inside_road": is_inside, "is_stopped": True}
@@ -128,12 +128,10 @@ class Camera:
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False}
 
 
-      
         # id should be the id from deep sort
         # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
         # Dps fala comigo Miguel, ass Hugo
             
-
 
         self.q.put((data, obj.frame[50:125, 1725:2250]))
 
@@ -170,14 +168,17 @@ class Camera:
 
         for i, box in enumerate(bbox_xyxy):
             
-            ret = int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked 
+            ret = int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked
+
+
+            is_stopped = n_stops[i] > 2
 
             
             if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked : #Person
      
                 track_data.append(
                     
-                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i],velocity=0,  frame = im0 ))
+                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0 ))
 
                 tracked_objects[i].arealy_tracked = True
             
@@ -206,7 +207,7 @@ class Camera:
 
                     track_data.append(
                         
-                    DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i], 
+                    DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped, 
                         speed , tracked_objects[i].frame ))
 
 
@@ -218,7 +219,7 @@ class Camera:
 
                 track_data.append(
                     
-                DataObject(idx[i], box, scores[i][1], scores[i][1], n_stops[i] ))
+                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped))
 
     
         return bbox_xyxy, track_data
@@ -509,13 +510,11 @@ class Camera:
 
                     
                     for obj in track_data:
-                        if obj.velocity or (obj.cls == 0  and obj.frame is not None ):
+                        if obj.velocity or (obj.cls == 0  and obj.frame is not None ) or obj.is_stopped:
                             self.send_data(obj, names=names, gn=gn)
 
                     draw_boxes(im0, bbox_xyxy, track_data)
                     draw_detection_area(im0, self.detect_area)
-
-                   
 
 
                 # Print time (inference + NMS)
