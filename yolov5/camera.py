@@ -124,7 +124,7 @@ class Camera:
 
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True, "radarId": self.radarId}
 
-        elif obj.cls == 0:
+        elif obj.cls in [0,4,5,6,7,9]:
              data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "inside_road": is_inside, "is_stopped": True, "radarId": self.radarId}
 
         else:
@@ -532,7 +532,7 @@ class Camera:
 
                     
                     for obj in track_data:
-                        if obj.velocity or (obj.cls == 0  and obj.frame is not None ) or obj.is_stopped:
+                        if obj.velocity or (obj.cls in [0,4,5,6,7,9]  and obj.frame is not None ) or obj.is_stopped:
                             self.send_data(obj, names=names, gn=gn)
 
                     draw_boxes(im0, bbox_xyxy, track_data)
