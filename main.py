@@ -33,7 +33,7 @@ if __name__ == '__main__':
     opt.nosave = True
 
     # Info of url and others can be passed here to Celery
-    celery_instance = CeleryTasks()
+    celery_instance = CeleryTasks(opt.rabbit_mq_url)
 
     if opt.cam == 'riaAtiva':
         location = RiaAtiva(celery_instance)
