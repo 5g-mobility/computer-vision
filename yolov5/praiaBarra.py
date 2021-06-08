@@ -9,9 +9,10 @@ class PraiaBarra(Camera):
 
         detect_area = [([1398.1, 623], [1050.9, 618.9]),([1404, 600],[1123.1, 596.9])]
         detect_dist = 23
+        radarId = 5
         self.celery = celery
         model = "./sensor_fusion/ponte.pkl"
-        super().__init__(road_area,model,detect_area , detect_dist)
+        super().__init__(road_area,model,detect_area , detect_dist, radarId)
 
 
 if __name__ == '__main__':

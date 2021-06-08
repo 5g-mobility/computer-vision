@@ -36,12 +36,13 @@ IMG_SIZE = 2304, 1296
 
 class Camera:
 
-    def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0):
+    def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0, radarId = None):
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.is_road_scale = False
         self.max_distance_between_points = 65
         self.ppm = 10
         self.fps = None
+        self.radarId = radarId
         self.detect_area =  detect_area
         self.detect_dist = detect_dist
         self.mapping = self.initialize_mapping_model(model_path)
@@ -120,11 +121,15 @@ class Camera:
         lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
 
         if obj.is_stopped:
-            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True}
+
+            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True, "radarId": self.radarId}
+
         elif obj.cls == 0:
-             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "inside_road": is_inside, "is_stopped": True}
+             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "inside_road": is_inside, "is_stopped": True, "radarId": self.radarId}
+
         else:
-            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False}
+            data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False, "radarId": self.radarId}
+
 
 
         # id should be the id from deep sort
@@ -170,8 +175,9 @@ class Camera:
             ret = int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked
 
 
-            is_stopped = n_stops[i] > 2
+            is_stopped = n_stops[i] > 3
 
+            print(is_stopped)
             
             if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked : #Person
      
@@ -218,7 +224,7 @@ class Camera:
 
                 track_data.append(
                     
-                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped))
+                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped, frame = im0))
 
     
         return bbox_xyxy, track_data
