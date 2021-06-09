@@ -289,9 +289,7 @@ class Camera:
 
                 print("Timeout ...")
 
-                if self.time_objects:
-                    
-                    
+                if self.time_objects:  
 
                     for key in self.time_objects:
                             
@@ -300,8 +298,7 @@ class Camera:
                             
                     for k in del_keys:
                         del self.time_objects[k]
-
-                    self.q.task_done()
+                        
                 
                 continue
 
@@ -363,7 +360,6 @@ class Camera:
                     continue
 
                 
-    
 
                 json['date'] = str(date)
 
