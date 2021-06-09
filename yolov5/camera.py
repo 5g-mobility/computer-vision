@@ -298,8 +298,7 @@ class Camera:
                             
                     for k in del_keys:
                         del self.time_objects[k]
-                        
-                
+
                 continue
 
 
