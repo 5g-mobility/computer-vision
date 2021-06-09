@@ -341,7 +341,7 @@ class Camera:
                 
     
 
-                json['date'] = date
+                json['date'] = str(date)
 
                 print(date)
                 print(json)
@@ -353,7 +353,7 @@ class Camera:
                     for key in self.time_objects:
                        
             
-                        #self.celery.send_data(self.time_objects[key])
+                        self.celery.send_data(self.time_objects[key])
                         del_keys.append(key)
                          
                     for k in del_keys:
