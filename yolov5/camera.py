@@ -289,14 +289,15 @@ class Camera:
 
                 print("Timeout ...")
 
+                keys_to_del = []
                 if self.time_objects:  
 
                     for key in self.time_objects:
                             
-                        self.celery.send_data(self.time_objects[key])
-                        del_keys.append(key)
+                        #self.celery.send_data(self.time_objects[key])
+                        keys_to_del.append(key)
                             
-                    for k in del_keys:
+                    for k in keys_to_del:
                         del self.time_objects[k]
 
                 continue
@@ -372,7 +373,7 @@ class Camera:
                     for key in self.time_objects:
                        
             
-                        self.celery.send_data(self.time_objects[key])
+                        #self.celery.send_data(self.time_objects[key])
                         del_keys.append(key)
                          
                     for k in del_keys:
