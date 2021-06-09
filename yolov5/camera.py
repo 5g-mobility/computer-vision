@@ -152,7 +152,7 @@ class Camera:
 
         for obj in tracked_objects:
 
-    
+            
 
             if obj.previous_detection:
 
@@ -251,7 +251,7 @@ class Camera:
 
     def isMotocycle(self, is_inside):
         """ check if detected object is an motocycle
-
+    
             if ouside of road - cyclist
             else - motocycle
         """
@@ -277,8 +277,12 @@ class Camera:
         """Processes time of the frame and, accordingly with the data, it will send """
 
         while True:
+
+            print("aki")
             json, image_time = self.q.get()
-        
+            
+
+
             now = datetime.utcnow()
             time_from_image = self.reader.readtext(image_time, detail=0)
             res = re.findall("\d{2}", time_from_image[0])
@@ -360,9 +364,7 @@ class Camera:
                 else:
                     self.time_objects[date].append(json)
 
-
-                   
-                    
+        
 
             except ValueError:
                 print("Error while parsing date")
@@ -409,7 +411,6 @@ class Camera:
             modelc = load_classifier(name='resnet101', n=2)  # initialize
             modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
 
-            
 
         # Set Dataloader
         vid_path, vid_writer = None, None
@@ -441,6 +442,15 @@ class Camera:
         for path, img, im0s, vid_cap, times in dataset:
             #im0s -  imagem original
             # img - imagem resize
+
+
+            date = list(self.time_objects.keys)[0]
+
+            if datetime.utcnow() - timedelta(seconds=5) > list(self.time_objects.keys)[0]:
+                self.celery.send_data(self.time_objects[date])
+
+
+
 
             if not self.is_road_scale:
                 im = im0s
