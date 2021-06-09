@@ -18,7 +18,7 @@ import threading
 from utils.plots import plot_one_box, color_list
 import cv2
 import matplotlib.path as mpltPath
-from tracker import Tracker, Detection
+from tracker import Tracker, Detection 
 from dataObject import DataObject
 import json
 import queue
@@ -279,8 +279,32 @@ class Camera:
         while True:
 
             print("aki")
-            json, image_time = self.q.get()
-            
+
+            try:
+                json, image_time = self.q.get(block= True, timeout=5)
+
+
+            except:
+                
+
+                print("Timeout ...")
+
+                if self.time_objects:
+                    
+                    
+
+                    for key in self.time_objects:
+                            
+                        self.celery.send_data(self.time_objects[key])
+                        del_keys.append(key)
+                            
+                    for k in del_keys:
+                        del self.time_objects[k]
+
+                    self.q.task_done()
+                
+                continue
+
 
 
             now = datetime.utcnow()
@@ -442,12 +466,6 @@ class Camera:
         for path, img, im0s, vid_cap, times in dataset:
             #im0s -  imagem original
             # img - imagem resize
-
-
-            date = list(self.time_objects.keys)[0]
-
-            if datetime.utcnow() - timedelta(seconds=5) > list(self.time_objects.keys)[0]:
-                self.celery.send_data(self.time_objects[date])
 
 
 
