@@ -95,11 +95,6 @@ class Camera:
         bbox_h = obj.xyxy[3]
         # id
 
-        # TODO : falta normalizar os dados
-
-        
-        #center_x, center_y = box_center(obj.xyxy)
-
 
         xywh = xyxy2xywh(obj.xyxy.view(1, 4)).view(-1)
         
@@ -172,20 +167,18 @@ class Camera:
 
         for i, box in enumerate(bbox_xyxy):
             
-            ret = int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked
-
 
             is_stopped = n_stops[i] > 3
-
-            print(is_stopped)
             
-            if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked : #Person
+            if int(scores[i][1]) == 0: #Person
+                
+                if  not tracked_objects[i].arealy_tracked :
      
-                track_data.append(
-                    
-                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0 ))
+                    track_data.append(
+                        
+                    DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0 ))
 
-                tracked_objects[i].arealy_tracked = True
+                    tracked_objects[i].arealy_tracked = True
             
             else:
 
@@ -209,8 +202,6 @@ class Camera:
 
                     speed = round(self.estimateSpeed(times - tracked_objects[i].init_time) * direction, 2)
 
-
-                    print(speed)
                     
                     track_data.append(
                         
@@ -558,7 +549,7 @@ class Camera:
 
                     
                     for obj in track_data:
-                        if obj.velocity or (obj.cls in [0,4,5,6,7,9]  and obj.frame is not None ) or obj.is_stopped:
+                        if obj.velocity or (obj.cls in [0 ,4 ,5 ,6 ,7 ,9]  and obj.frame is not None ) or obj.is_stopped:
                             self.send_data(obj, names=names, gn=gn)
 
                     draw_boxes(im0, bbox_xyxy, track_data)
