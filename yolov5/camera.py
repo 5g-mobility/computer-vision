@@ -207,9 +207,11 @@ class Camera:
         
                     direction = -1 if tracked_objects[i].last_detection.points[0][1] - tracked_objects[i].previous_detection.points[0][1] > 0 else 1
 
-                    speed = self.estimateSpeed(times - tracked_objects[i].init_time) * direction
+                    speed = round(self.estimateSpeed(times - tracked_objects[i].init_time) * direction, 2)
 
 
+                    print(speed)
+                    
                     track_data.append(
                         
                     DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped, 
