@@ -524,7 +524,7 @@ class Camera:
                     for c in det[:, -1].unique():
                         n = (det[:, -1] == c).sum()  # detections per class
                         s += f'{n} {names[int(c)]}s, '  # add to string
-                        print("s: ", s)
+                        #print("s: ", s)
 
                     # Write results
                     for *xyxy, conf, cls in reversed(det):
@@ -559,7 +559,7 @@ class Camera:
 
 
                 # Print time (inference + NMS)
-                print(f'{s}Done. ({t2 - t1:.3f}s)')
+                #print(f'{s}Done. ({t2 - t1:.3f}s)')
 
                 # Stream results
                 if view_img:
