@@ -170,15 +170,13 @@ class Camera:
 
             is_stopped = n_stops[i] > 3
             
-            if int(scores[i][1]) == 0: #Person
+            if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked: #Person
                 
-                if  not tracked_objects[i].arealy_tracked :
-     
-                    track_data.append(
-                        
-                    DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0, person=True))
+                track_data.append(
+                    
+                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0, person=True))
 
-                    tracked_objects[i].arealy_tracked = True
+                tracked_objects[i].arealy_tracked = True
 
                 
             
