@@ -176,9 +176,11 @@ class Camera:
      
                     track_data.append(
                         
-                    DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0 ))
+                    DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0, person=True))
 
                     tracked_objects[i].arealy_tracked = True
+
+                
             
             else:
 
@@ -457,8 +459,6 @@ class Camera:
             # img - imagem resize
 
 
-
-
             if not self.is_road_scale:
                 im = im0s
                 if stream:
@@ -549,7 +549,7 @@ class Camera:
 
                     
                     for obj in track_data:
-                        if obj.velocity or (obj.cls in [0 ,4 ,5 ,6 ,7 ,9]  and obj.frame is not None ) or obj.is_stopped:
+                        if obj.velocity or (obj.cls in [4 ,5 ,6 ,7 ,9] or obj.person and obj.frame is not None ) or obj.is_stopped:
                             self.send_data(obj, names=names, gn=gn)
 
                     draw_boxes(im0, bbox_xyxy, track_data)

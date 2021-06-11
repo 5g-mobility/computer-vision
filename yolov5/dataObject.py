@@ -2,7 +2,7 @@
 
 class DataObject:
 
-    def __init__(self, idx, xyxy, cls, conf, is_stopped,  velocity = None, frame = None ):
+    def __init__(self, idx, xyxy, cls, conf, is_stopped,  velocity = None, frame = None, person= None ):
         self.idx = idx
         self.xyxy= xyxy
         self.cls = cls
@@ -10,3 +10,4 @@ class DataObject:
         self.is_stopped = is_stopped
         self.velocity =  velocity
         self.frame = frame
+        self.person = person
