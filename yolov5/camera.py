@@ -39,7 +39,7 @@ class Camera:
     def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0, radarId = None):
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.is_road_scale = False
-        self.max_distance_between_points = 65
+        self.max_distance_between_points = 57
         self.ppm = 10
         self.fps = None
         self.radarId = radarId
@@ -168,7 +168,7 @@ class Camera:
         for i, box in enumerate(bbox_xyxy):
             
 
-            is_stopped = n_stops[i] > 3
+            is_stopped = n_stops[i] > 5
             
             if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked: #Person
                 
@@ -195,14 +195,11 @@ class Camera:
 
                 elif tracked_objects[i].cross_line == True and not is_inside_area((center_x, center_y), self.detect_area[0],self.detect_area[1]):
                     
-                    
                 
-        
                     direction = -1 if tracked_objects[i].last_detection.points[0][1] - tracked_objects[i].previous_detection.points[0][1] > 0 else 1
 
                     speed = round(self.estimateSpeed(times - tracked_objects[i].init_time) * direction, 2)
 
-                    
                     track_data.append(
                         
                     DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped, 
@@ -213,11 +210,18 @@ class Camera:
                     tracked_objects[i].init_time = None
                     tracked_objects[i].frame = None
 
+                elif is_stopped and not tracked_objects[i].arealy_tracked:
+                    track_data.append(
+
+                        DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped, frame = im0) )
+                    tracked_objects[i].arealy_tracked = True
+
                     continue
+                
 
                 track_data.append(
                     
-                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped, frame = im0))
+                DataObject(idx[i], box, scores[i][1], scores[i][1], False, frame = im0))
 
     
         return bbox_xyxy, track_data
