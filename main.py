@@ -1,4 +1,5 @@
 import cv2
+import os
 import sys
 sys.path.insert(0, './yolov5')
 import argparse
@@ -9,7 +10,6 @@ import torch
 from yolov5.tasks import CeleryTasks
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
     parser.add_argument('--cam',
                          choices=['riaAtiva', 'ponteBarra', 'dunas'],
                          help='Camera to be used', required=True)
@@ -32,8 +32,14 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     opt.nosave = True
 
+    RABBITMQ_IP = os.environ.get("RABBITMQ_IP", None)
+
+    if not RABBITMQ_IP:
+        print("No RABBITMQ_IP ENV detected!")
+        quit()
+
     # Info of url and others can be passed here to Celery
-    celery_instance = CeleryTasks(opt.rabbit_mq_url)
+    celery_instance = CeleryTasks(RABBITMQ_IP)
 
     if opt.cam == 'riaAtiva':
         location = RiaAtiva(celery_instance)
