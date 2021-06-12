@@ -1,5 +1,5 @@
 import math
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 from filterpy.kalman import KalmanFilter

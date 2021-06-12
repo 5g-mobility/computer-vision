@@ -1,6 +1,5 @@
 from camera import *
 from tasks import CeleryTasks
-import numpy as np
 
 class RiaAtiva(Camera):
 
@@ -16,30 +15,6 @@ class RiaAtiva(Camera):
         super().__init__(road_area, model, detect_area, detect_dist, radar_id)
 
 
-        # def rescale_coords(self,point, img):
-        # x, y = point
-        # img_y, img_x = img.shape[:2]
-        # n_img_x,n_img_y = IMG_SIZE
-
-        # return x * (img_x/n_img_x), y * (img_y/n_img_y)
-
-
-    # def calibrate_geoCoods(self, coords, geo_coords):
-
-    #     lat, lon =  geo_coords
-
-
-    #     coords_rescale = self.rescale_coords(coords, )
-
-
-    #     p = np.array([lat, lon])
-
-    #     line1 = np.array()
-
-    #     line2 = np.array()
-
-
-    #     return lat, lon
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

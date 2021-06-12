@@ -15,22 +15,16 @@ import numpy as np
 from numpy import random
 import time
 import threading
-from utils.plots import plot_one_box, color_list
 import cv2
 import matplotlib.path as mpltPath
 from tracker import Tracker, Detection 
 from dataObject import DataObject
-import json
 import queue
 import pickle
-import pandas as pd
 import re
 from datetime import datetime
 from easyocr import Reader
-from datetime import timezone, timedelta
-import matplotlib.pylab as plt
-
-
+from datetime import timedelta
 
 IMG_SIZE = 2304, 1296
 
@@ -517,24 +511,13 @@ class Camera:
                 s += '%gx%g ' % img.shape[2:]  # print string
                 gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if len(det):
-                    # Rescale boxes from img_size to im0 size
-                    #det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-
-                    # Print results
-                    for c in det[:, -1].unique():
-                        n = (det[:, -1] == c).sum()  # detections per class
-                        s += f'{n} {names[int(c)]}s, '  # add to string
-                        #print("s: ", s)
 
                     # Write results
                     for *xyxy, conf, cls in reversed(det):
-
-                        
+  
                         bbox = np.array([
                         [xyxy[0].item(), xyxy[1].item()],
                         [xyxy[2].item(), xyxy[3].item()] ])
-
-
 
                         norfair_detections.append(Detection(bbox, np.array([conf, cls])))
 
@@ -546,7 +529,6 @@ class Camera:
                     if times is None:
                         bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0,dataset.time_mili)
                     else:
-
                         bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
 
                     
@@ -554,12 +536,13 @@ class Camera:
                         if obj.velocity or (obj.cls in [4 ,5 ,6 ,7 ,9] or obj.person and obj.frame is not None ) or obj.is_stopped:
                             self.send_data(obj, names=names, gn=gn)
 
-                    draw_boxes(im0, bbox_xyxy, track_data)
-                    draw_detection_area(im0, self.detect_area)
+                    
+                    if view_img:
+
+                        draw_boxes(im0, bbox_xyxy, track_data)
+                        draw_detection_area(im0, self.detect_area)
 
 
-                # Print time (inference + NMS)
-                #print(f'{s}Done. ({t2 - t1:.3f}s)')
 
                 # Stream results
                 if view_img:
@@ -589,12 +572,7 @@ if __name__ == '__main__':
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     opt = parser.parse_args()
 
-
-    
-
-    #print(camera.source)
     camera =  Camera()
-    # dunas = Camera()
 
     with torch.no_grad():
         camera.detect(opt)

@@ -219,6 +219,22 @@ fabric.properties
 # C extensions
 *.so
 
+# Packages
+mapping/
+coco128/
+video/
+
+
+# Files
+frames.py
+person_stopped.mov
+plot_image.py
+data_gen.py
+sensor_dataset.csv
+frame_extractor.py
+data.csv
+road_detect.py
+
 # Distribution / packaging
 .Python
 env/
