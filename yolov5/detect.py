@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 
 from torch.functional import Tensor
-from tracker import Detection, Tracker
+from yolov5.tracker import Detection, Tracker
 import cv2
 import torch
 import torch.backends.cudnn as cudnn

@@ -2,20 +2,20 @@
 import math
 from os import times
 import torch
-from utils.bbox import box_center, draw_boxes, draw_detection_area, is_inside_area
+from yolov5.utils.bbox import box_center, draw_boxes, draw_detection_area, is_inside_area
 import argparse
 from pathlib import Path
-from utils.general import increment_path
-from utils.torch_utils import select_device, time_synchronized, load_classifier
-from utils.general import set_logging, check_img_size, non_max_suppression, apply_classifier, scale_coords, xyxy2xywh, scale_coord, xyxy2xywh_no_tensor
+from yolov5.utils.general import increment_path
+from yolov5.utils.torch_utils import select_device, time_synchronized, load_classifier
+from yolov5.utils.general import set_logging, check_img_size, non_max_suppression, apply_classifier, scale_coords, xyxy2xywh, scale_coord, xyxy2xywh_no_tensor
 from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadImages
+from yolov5.utils.datasets import LoadStreams, LoadImages
 import torch.backends.cudnn as cudnn
 import numpy as np
 from numpy import random
 import time
 import threading
-from utils.plots import plot_one_box, color_list
+from yolov5.utils.plots import plot_one_box, color_list
 import cv2
 import matplotlib.path as mpltPath
 from yolov5.tracker import Tracker, Detection 
