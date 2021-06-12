@@ -18,8 +18,8 @@ import threading
 from utils.plots import plot_one_box, color_list
 import cv2
 import matplotlib.path as mpltPath
-from tracker import Tracker, Detection 
-from dataObject import DataObject
+from yolov5.tracker import Tracker, Detection 
+from yolov5.dataObject import DataObject
 import json
 import queue
 import pickle

@@ -1,5 +1,5 @@
 from yolov5.tasks import CeleryTasks
-from camera import *
+from yolov5.camera import *
 
 
 class Dunas(Camera):

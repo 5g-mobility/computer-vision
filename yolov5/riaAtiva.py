@@ -1,4 +1,4 @@
-from camera import *
+from yolov5.camera import *
 from yolov5.tasks import CeleryTasks
 import numpy as np
 
