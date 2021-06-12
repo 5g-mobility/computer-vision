@@ -1,12 +1,11 @@
-import cv2
 import os
-import sys
 import argparse
 from yolov5.dunas import Dunas
 from yolov5.praiaBarra import PraiaBarra
 from yolov5.riaAtiva import RiaAtiva
 import torch
 from yolov5.tasks import CeleryTasks
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cam',

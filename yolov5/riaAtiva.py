@@ -1,5 +1,5 @@
 from camera import *
-from tasks import CeleryTasks
+from yolov5.tasks import CeleryTasks
 import numpy as np
 
 class RiaAtiva(Camera):

@@ -1,4 +1,4 @@
-from tasks import CeleryTasks
+from yolov5.tasks import CeleryTasks
 from camera import *
 
 
