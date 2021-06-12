@@ -508,7 +508,6 @@ class Camera:
 
                 p = Path(p)  # to Path
 
-                s += '%gx%g ' % img.shape[2:]  # print string
                 gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if len(det):
 
