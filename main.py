@@ -1,7 +1,7 @@
 import os
 import argparse
 import sys
-sys.path.append('./yolov5')
+sys.path.append("{}/yolov5".format(os.getcwd()))
 from dunas import Dunas
 from praiaBarra import PraiaBarra
 from riaAtiva import RiaAtiva
