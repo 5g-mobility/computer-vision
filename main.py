@@ -1,7 +1,6 @@
 import cv2
 import os
 import sys
-sys.path.insert(0, './yolov5')
 import argparse
 from yolov5.dunas import Dunas
 from yolov5.praiaBarra import PraiaBarra
