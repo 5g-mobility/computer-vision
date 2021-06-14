@@ -5,14 +5,15 @@ class RiaAtiva(Camera):
 
     def __init__(self, celery):
 
-        road_area = [ [(895, 194), (1002, 1296), (2288, 1296), (988, 194)],
+        road_area = [ [(895, 194), (1002, 1296), (2290, 1296), (990, 194)],
                           [(1762, 810), (2165, 1296), (2304, 1296), (2304, 984)] ]
         detect_area = [([890.2, 255.9], [1095.5, 267.0]),([885, 313.6],[1166.9, 335.2])]
         detect_dist = 14
         radar_id = 7
         self.celery = celery
+        max_distance_between_points = 57
         model = "./sensor_fusion/ria.pkl"
-        super().__init__(road_area, model, detect_area, detect_dist, radar_id)
+        super().__init__(road_area, model, detect_area, detect_dist, radar_id, max_distance_between_points)
 
 
 

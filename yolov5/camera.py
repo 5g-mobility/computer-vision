@@ -30,15 +30,16 @@ IMG_SIZE = 2304, 1296
 
 class Camera:
 
-    def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0, radarId = None):
+    def __init__(self, road_area=None, model_path=None, detect_area = None, detect_dist=0, radarId = None, max_distance_between_points=65):
         self.road_area = road_area if road_area else [([(0, 0), (0, 0), (0, 0), (0, 0)])]
         self.is_road_scale = False
-        self.max_distance_between_points = 57
+        self.max_distance_between_points = max_distance_between_points
         self.ppm = 10
         self.fps = None
         self.radarId = radarId
         self.detect_area =  detect_area
         self.detect_dist = detect_dist
+        self.non_vehicles = [0,4,5,6,7,9]
         self.mapping = self.initialize_mapping_model(model_path)
         self.time_objects = {}  # Object JSON Data to be sent to celery regarding one timestamp
         self.q = queue.Queue()  # Queue of frames to be OCR
@@ -87,7 +88,6 @@ class Camera:
         bbox_top = obj.xyxy[1]
         bbox_w = obj.xyxy[2]
         bbox_h = obj.xyxy[3]
-        # id
 
 
         xywh = xyxy2xywh(obj.xyxy.view(1, 4)).view(-1)
@@ -106,25 +106,18 @@ class Camera:
         
         xywh_norm = (xyxy2xywh(obj.xyxy.view(1, 4)) / gn).view(-1).tolist()
 
-        #lat, lon =self.calibrate_geoCoods( (center_x, center_y ), self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0])
         lat, lon = self.mapping.predict(np.asarray([xywh_norm[0:2]])).tolist()[0]
 
         if obj.is_stopped:
 
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": 0 , "inside_road": is_inside, "is_stopped": True, "radarId": self.radarId}
 
-        elif obj.cls in [0,4,5,6,7,9]:
+        elif obj.cls in self.non_vehicles:
              data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "inside_road": is_inside, "is_stopped": True, "radarId": self.radarId}
 
         else:
             data = {"id": obj.idx, "class": names[int(obj.cls)],"lat": lat, "long": lon, "speed": obj.velocity, "inside_road": is_inside,  "is_stopped": False, "radarId": self.radarId}
 
-
-
-        # id should be the id from deep sort
-        # box_w and other stuff is not needed, instead of the class maybe send the EVENT_TYPE AND EVENT_CLASS ->
-        # Dps fala comigo Miguel, ass Hugo
-            
 
         self.q.put((data, obj.frame[50:125, 1725:2250]))
 
@@ -164,11 +157,12 @@ class Camera:
 
             is_stopped = n_stops[i] > 5
             
-            if int(scores[i][1]) == 0 and not tracked_objects[i].arealy_tracked: #Person
+       
+            if int(scores[i][1]) in [0, 4 ,5 ,6 ,7 ,9] and not tracked_objects[i].arealy_tracked:
                 
                 track_data.append(
                     
-                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0, person=True))
+                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0))
 
                 tracked_objects[i].arealy_tracked = True
 
@@ -204,6 +198,7 @@ class Camera:
                     tracked_objects[i].init_time = None
                     tracked_objects[i].frame = None
 
+                # veiculos parados
                 elif is_stopped and not tracked_objects[i].arealy_tracked:
                     track_data.append(
 
@@ -413,6 +408,7 @@ class Camera:
         # Load model
         model = attempt_load(weights, map_location=device)  # load FP32 model
         imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
+
         if half:
             model.half()  # to FP16
 
@@ -526,13 +522,17 @@ class Camera:
                 if tracked_objects:
 
                     if times is None:
+                        #video stream
                         bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0,dataset.time_mili)
+
                     else:
+                        #camera stream
                         bbox_xyxy, track_data =  self.process_tracking_data(tracked_objects, img, im0, times)
 
                     
                     for obj in track_data:
-                        if obj.velocity or (obj.cls in [4 ,5 ,6 ,7 ,9] or obj.person and obj.frame is not None ) or obj.is_stopped:
+                        #filter
+                        if obj.velocity or obj.cls in self.non_vehicles or obj.is_stopped:
                             self.send_data(obj, names=names, gn=gn)
 
                     
