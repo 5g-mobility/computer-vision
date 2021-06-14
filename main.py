@@ -1,15 +1,15 @@
-import cv2
-import sys
-sys.path.insert(0, './yolov5')
+import os
 import argparse
-from yolov5.dunas import Dunas
-from yolov5.praiaBarra import PraiaBarra
-from yolov5.riaAtiva import RiaAtiva
+import sys
+sys.path.append("{}/yolov5".format(os.getcwd()))
+from dunas import Dunas
+from praiaBarra import PraiaBarra
+from riaAtiva import RiaAtiva
 import torch
-from yolov5.tasks import CeleryTasks
+from tasks import CeleryTasks
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rabbit_mq_url', help='URL of RabbitMQ', required=True, type=str)
     parser.add_argument('--cam',
                          choices=['riaAtiva', 'ponteBarra', 'dunas'],
                          help='Camera to be used', required=True)
@@ -32,13 +32,21 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     opt.nosave = True
 
+    RABBITMQ_IP = os.environ.get("RABBITMQ_IP", None)
+
+    if not RABBITMQ_IP:
+        print("No RABBITMQ_IP ENV detected!")
+        quit()
+
     # Info of url and others can be passed here to Celery
-    celery_instance = CeleryTasks()
+    celery_instance = CeleryTasks(RABBITMQ_IP)
 
     if opt.cam == 'riaAtiva':
         location = RiaAtiva(celery_instance)
         opt.weights = './yolov5/weights/best-riaAtiva.pt'
         opt.source = 'rtsp://pei:5g-mobix@10.0.19.201:554'
+        
+        
         
     elif opt.cam == 'ponteBarra':
         location = PraiaBarra(celery_instance)

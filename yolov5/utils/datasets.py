@@ -173,14 +173,14 @@ class LoadImages:  # for inference
                     ret_val, img0 = self.cap.read()
 
             self.frame += 1
-            print(f'video {self.count + 1}/{self.nf} ({self.frame}/{self.nframes}) {path}: ', end='')
+            #(f'video {self.count + 1}/{self.nf} ({self.frame}/{self.nframes}) {path}: ', end='')
 
         else:
             # Read image
             self.count += 1
             img0 = cv2.imread(path)  # BGR
             assert img0 is not None, 'Image Not Found ' + path
-            print(f'image {self.count}/{self.nf} {path}: ', end='')
+            #print(f'image {self.count}/{self.nf} {path}: ', end='')
 
         # Padded resize
         img = letterbox(img0, self.img_size, stride=self.stride)[0]
@@ -248,7 +248,7 @@ class LoadWebcam:  # for inference
         # Print
         assert ret_val, f'Camera Error {self.pipe}'
         img_path = 'webcam.jpg'
-        print(f'webcam {self.count}: ', end='')
+        #print(f'webcam {self.count}: ', end='')
 
         # Padded resize
         img = letterbox(img0, self.img_size, stride=self.stride)[0]
@@ -301,7 +301,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
             thread = Thread(target=self.update, args=([i, cap, eval(s) if s.isnumeric() else s]), daemon=True)
             print(f' success ({w}x{h} at {self.fps:.2f} FPS).')
             thread.start()
-        print('')  # newline
+        #print('')  # newline
 
         # check for common shapes
         s = np.stack([letterbox(x, self.img_size, stride=self.stride)[0].shape for x in self.imgs], 0)  # shapes
@@ -317,17 +317,13 @@ class LoadStreams:  # multiple IP or RTSP cameras
 
     def update(self, index, cap, url):
         # Read next stream frame in a daemon thread
-        n = 0
         while cap.isOpened():
-            n += 1
-            if n == 2:  # read every 2th frame
-                success, im = cap.read()
-                if not success:
-                    cap = self.connect_to_cam(url)
-               
-                self.times = self.time_mili(cap)
-                self.imgs[index] = im if success else self.imgs[index] * 0
-                n = 0
+            success, im = cap.read()
+            if not success:
+                cap = self.connect_to_cam(url)
+            
+            self.times = self.time_mili(cap)
+            self.imgs[index] = im if success else self.imgs[index] * 0
                 
             time.sleep(0.01)  # wait time
 

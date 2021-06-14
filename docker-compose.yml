@@ -4,10 +4,14 @@ services:
     mqtt-consumer-cam-ria-ativa:
         build:
             context: .
-        entrypoint: ["python", "main.py", "--rabbit_mq_url", "asda", "--cam", "ponteBarra"]
+        entrypoint: ["python", "main.py", "--cam", "ponteBarra"]
+        environment:
+            - RABBITMQ_IP=${RABBITMQ_IP}
         restart: unless-stopped
     mqtt-consumer-cam-ponte-barra:
         build:
             context: .
-        entrypoint: ["python", "main.py", "--rabbit_mq_url", "asda", "--cam", "riaAtiva"]
+        entrypoint: ["python", "main.py", "--cam", "riaAtiva"]
+        environment:
+            - RABBITMQ_IP=${RABBITMQ_IP}
         restart: unless-stopped

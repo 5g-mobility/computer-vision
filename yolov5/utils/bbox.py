@@ -74,17 +74,14 @@ def is_inside_area(point, line1, line2 ):
     l2p1 , l2p2 = line2
     
 
-
     l1v1 = (l1p2[0] - l1p1[0], l1p2[1] - l1p1[1])
-
     l1v2 = (l1p2[0] - point[0], l1p2[1] - point[1])
 
     l2v1 = (l2p2[0] - l2p1[0], l2p2[1] - l2p1[1])
-
     l2v2 = (l2p2[0] - point[0], l2p2[1] - point[1])
 
-    exp1 = l1v1[0]*l1v2[1] - l1v1[1]* l1v2[0]
 
+    exp1 = l1v1[0]*l1v2[1] - l1v1[1]* l1v2[0]
     exp2 = l2v1[0]*l2v2[1] - l2v1[1]* l2v2[0]
 
 
