@@ -321,6 +321,7 @@ class LoadStreams:  # multiple IP or RTSP cameras
             success, im = cap.read()
             if not success:
                 cap = self.connect_to_cam(url)
+                print("Restart Connection ...")
             
             self.times = self.time_mili(cap)
             self.imgs[index] = im if success else self.imgs[index] * 0
