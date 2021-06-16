@@ -44,6 +44,7 @@ class Camera:
         self.time_objects = {}  # Object JSON Data to be sent to celery regarding one timestamp
         self.q = queue.Queue()  # Queue of frames to be OCR
         self.old_ids = set()  # Old Deep Sort Object Ids -> maybe this can be cleaned up every x time
+        self.stopped_objs = {}
         self.tracker = Tracker(
 
         distance_function= self.euclidean_distance,
@@ -162,7 +163,7 @@ class Camera:
                 
                 track_data.append(
                     
-                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0))
+                DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped ,velocity=0,  frame = im0, firstTack=True))
 
                 tracked_objects[i].arealy_tracked = True
 
@@ -200,6 +201,10 @@ class Camera:
 
                 # veiculos parados
                 elif is_stopped and not tracked_objects[i].arealy_tracked:
+
+
+                    self.stopped_objs[box] = 2
+
                     track_data.append(
 
                         DataObject(idx[i], box, scores[i][1], scores[i][1], is_stopped, frame = im0) )
@@ -532,7 +537,7 @@ class Camera:
                     
                     for obj in track_data:
                         #filter
-                        if obj.velocity or obj.cls in self.non_vehicles or obj.is_stopped:
+                        if obj.velocity or obj.firstTack or obj.is_stopped:
                             self.send_data(obj, names=names, gn=gn)
 
                     
