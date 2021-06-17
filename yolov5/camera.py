@@ -159,7 +159,7 @@ class Camera:
             is_stopped = n_stops[i] > 5
             
        
-            if int(scores[i][1]) in [0, 4 ,5 ,6 ,7 ,9] and not tracked_objects[i].arealy_tracked:
+            if int(scores[i][1]) in [0,1,4 ,5 ,6 ,7 ,9] and not tracked_objects[i].arealy_tracked:
                 
                 track_data.append(
                     
