@@ -269,7 +269,7 @@ class Camera:
 
         while True:
 
-            print("aki")
+
 
             try:
                 json, image_time = self.q.get(block= True, timeout=5)
@@ -354,7 +354,6 @@ class Camera:
 
                 json['date'] = str(date)
 
-                print(date)
                 print(json)
 
                 if date not in self.time_objects:
