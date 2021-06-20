@@ -1,5 +1,14 @@
 # Computer-Vision
 
+Object tracking and detection for cameras in Ria Ativa and Praia da Barra.
+
+This project includes features like:
+- Detection of vehicles ( car, truck, motorcycle)
+- Detection of person and bicycles in bike lains
+- Detection of stopped objects
+- Detection of vehicles outside the road
+- Detection of animals and strange objects
+
 ## How to install
 
 Make sure you are running Python 3.8 or higher
@@ -18,3 +27,18 @@ source venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
+## How to run the application
+
+Run detection for camera in Ria Ativa 
+
+```bash
+python3 -m main.py --cam riaAtiva
+```
+
+Run detection for camera Praia da Barra
+
+```bash
+python3 -m main.py --cam ponteBarra
+```
+
