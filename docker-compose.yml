@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+    mqtt-consumer-cam-ria-ativa:
+        build:
+            context: .
+        entrypoint: ["python", "main.py", "--cam", "ponteBarra"]
+        environment:
+            - RABBITMQ_IP=${RABBITMQ_IP}
+        restart: unless-stopped
+    mqtt-consumer-cam-ponte-barra:
+        build:
+            context: .
+        entrypoint: ["python", "main.py", "--cam", "riaAtiva"]
+        environment:
+            - RABBITMQ_IP=${RABBITMQ_IP}
+        restart: unless-stopped
